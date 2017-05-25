@@ -17,6 +17,19 @@ MotorManager::MotorManager()
   gain_z = 1;
   gain_h = 1;
 
+  stop_motor = 1;
+
+}
+
+void MotorManager::stop()
+{
+  for(unsigned int i = 0 ; i < 4 ; i++)
+  {
+    motor_value[i] = 0;
+  }
+
+  stop_motor = 1;
+
 }
 
 void MotorManager::command(float command_x, float command_y, float command_z, float command_h)
@@ -31,10 +44,24 @@ void MotorManager::command(float command_x, float command_y, float command_z, fl
 
   for(unsigned int i = 0 ; i < 4 ; i++)
   {
-    motor_value[i] += (180-55);
+    motor_value[i] += (160-55);
     motor_value[i] = (motor_value[i] <= 55) ? 55 : motor_value[i]; //just to make sure that the motor values are always between 55 (stop of the motors) and 180 (max value)
-    motor_value[i] = (motor_value[i] > 180) ? 180 : motor_value[i];
+    motor_value[i] = (motor_value[i] > 160) ? 160 : motor_value[i];
   }
+
+  for(int i = 0; i <= 3 ; i++)
+  {
+    if(! stop_motor)
+    {
+      motor[i].write(motor_value[i]);
+    }
+    else
+    {
+      motor_value[i] = 0;
+      motor[i].write(0);
+    }
+  }
+
 }
 
 void MotorManager::startMotors()    //needed to "arm" the ESC, without that, they wont start.
@@ -44,6 +71,8 @@ void MotorManager::startMotors()    //needed to "arm" the ESC, without that, the
     motor[i].write(10);
   }
   delay(100);
+
+  stop_motor = 0;
 }
 
 float MotorManager::getMotorValue(int motor_id)
