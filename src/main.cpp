@@ -47,7 +47,6 @@ void loop()
       pid.reset();
       motors.stop();
       if(!safe_mode)
-
         motor_started = 0;
     }
     else
