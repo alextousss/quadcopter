@@ -8,7 +8,8 @@ class PID
 {
 public:
   PID();
-
+  void reset();
+  
   void calcCommand( float orientation_x,
                   float orientation_y,
                   float orientation_z,
