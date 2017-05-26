@@ -20,6 +20,7 @@ void setup()
 void loop()
 {
   unsigned long millis_at_last_print = millis();
+  
   if(debug)
   {
     while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs

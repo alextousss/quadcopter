@@ -67,6 +67,7 @@ void MotorManager::command(float command_x, float command_y, float command_z, fl
 
 void MotorManager::startMotors()    //needed to "arm" the ESC, without that, they wont start.
 {
+  delay(100);
   for(int i = 0; i <= 3 ; i++)
   {
     motor[i].write(10);
