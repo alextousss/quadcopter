@@ -3,11 +3,11 @@
 #include <Servo.h>
 #include <NewPing.h>
 
-#include "../include/IMUsensor.hpp"
-#include "../include/PID.hpp"
-#include "../include/motormanager.hpp"
+#include "IMUsensor.hpp"
+#include "PID.hpp"
+#include "motormanager.hpp"
 
-bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool debug = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 
 void setup()
@@ -20,7 +20,7 @@ void setup()
 void loop()
 {
   unsigned long millis_at_last_print = millis();
-  
+
   if(debug)
   {
     while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
