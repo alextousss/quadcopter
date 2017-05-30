@@ -67,7 +67,7 @@ void loop()
 
     }
 
-    if(millis() - millis_at_last_print > 30 && 0)
+    if(millis() - millis_at_last_print > 30)
     {
       Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
       Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
