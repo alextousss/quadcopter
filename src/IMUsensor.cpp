@@ -1,4 +1,4 @@
-#include "../include/IMUsensor.hpp"
+#include "IMUsensor.hpp"
 
 #define MPU_addr 0x68
 #define FS_SEL 131
@@ -30,7 +30,7 @@ IMUsensor::IMUsensor()
   gyro_y = 0;
   gyro_z = 0;
 
-
+  gyro_angle_set = false;
 
   orientation_x = 0; //absolute orientation
   orientation_y = 0;
@@ -39,12 +39,20 @@ IMUsensor::IMUsensor()
   raw_temperature = 0;
 
   Wire.begin();
-  Wire.beginTransmission(MPU_addr);
-  Wire.write(0x6B);
-  Wire.write(0);
-  Wire.endTransmission(true);
-
-  Serial.println("end constructor");
+  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
+  Wire.write(0x6B);                                                    //Send the requested starting register
+  Wire.write(0x00);                                                    //Set the requested starting register
+  Wire.endTransmission();                                              //End the transmission
+  //Configure the accelerometer (+/-8g)
+  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
+  Wire.write(0x1C);                                                    //Send the requested starting register
+  Wire.write(0x10);                                                    //Set the requested starting register
+  Wire.endTransmission();                                              //End the transmission
+  //Configure the gyro (500dps full scale)
+  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
+  Wire.write(0x1B);                                                    //Send the requested starting register
+  Wire.write(0x08);                                                    //Set the requested starting register
+  Wire.endTransmission();                                              //End the transmission
 }
 
 bool IMUsensor::calcAbsoluteOrientation( float complementary_rate )
@@ -62,10 +70,20 @@ bool IMUsensor::calcAbsoluteOrientation( float complementary_rate )
   accel_x = atan(raw_accel_y/sqrt(pow(raw_accel_x, 2) + pow(raw_accel_z, 2))) * (180/3.14159);    //converts the raw accelerometer values to an absolute orientation (in degrees)
   accel_y = atan(-1*raw_accel_x/sqrt(pow(raw_accel_y, 2) + pow(raw_accel_z, 2))) * (180/3.14159);
 
-  orientation_x = (complementary_rate * gyro_x) + ((1 - complementary_rate) * accel_x);
-  orientation_y = (complementary_rate * gyro_y) + ((1 - complementary_rate) * accel_y);
-  orientation_z = gyro_z;
+  if(gyro_angle_set)
+  {
+    orientation_x = (complementary_rate * gyro_x) + ((1 - complementary_rate) * accel_x);
+    orientation_y = (complementary_rate * gyro_y) + ((1 - complementary_rate) * accel_y);
+    orientation_z = gyro_z;
+  }
+  else
+  {
+    orientation_x = accel_x;
+    orientation_y = accel_y;
+    orientation_z = 0;
 
+    gyro_angle_set = true;
+  }
   return true;
 }
 

@@ -61,8 +61,11 @@ private:
 
   int16_t raw_temperature;
 
+  bool gyro_angle_set;
+
   unsigned long last_data_refresh;
   float time_loop;
+
 };
 
 #endif
