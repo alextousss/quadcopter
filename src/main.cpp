@@ -7,8 +7,8 @@
 #include "PID.hpp"
 #include "motormanager.hpp"
 
-bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
-bool debug = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
+bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+bool debug = 1;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 
 void setup()
 {
@@ -36,11 +36,13 @@ void loop()
   MotorManager motors;            //objet qui gère le calcul des valeurs par moteur, et s'occupe de les contrôler
 
   mpu.calibrateSensors();
+  motors.startMotors();
+
   delay(1000);
 
   while(true)
   {
-    mpu.calcAbsoluteOrientation(0.97);
+    mpu.calcAbsoluteOrientation(0.99);
     mpu.actualizeSensorData();
 
     if( !digitalRead(9) == LOW )
@@ -56,8 +58,6 @@ void loop()
       {
         motor_started = 1;
         millis_at_motor_start = millis();
-        motors.startMotors();
-        delay(100);
       }
 
       //calcul du PID avec les valeurs de l'IMU
@@ -67,7 +67,7 @@ void loop()
 
     }
 
-    if(millis() - millis_at_last_print > 60)
+    if(millis() - millis_at_last_print > 30 && 0)
     {
       Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
       Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
@@ -79,14 +79,14 @@ void loop()
       Serial.print( pid.getCommandH() ); Serial.print("\n");
 
 
-
-    //  Serial.print("command H : ") ; Serial.print( pid.getCommandH(), 2 ) ; Serial.print("\t\tsum error h :\t"); Serial.println( pid.getSumErrorH(), 2 );
       millis_at_last_print = millis();
     }
 
-    if ( safe_mode && millis() - millis_at_motor_start > 3000 && motor_started )
+    if ( safe_mode && motor_started  && millis() - millis_at_motor_start > 3000 )
     {
       motors.stop();
+      Serial.println("stop bc of millis > 3000");
     }
+    delay(10);
   }
 }
