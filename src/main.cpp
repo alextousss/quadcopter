@@ -19,8 +19,6 @@ void setup()
 
 void loop()
 {
-  unsigned long millis_at_last_print = millis();
-
   if(debug)
   {
     while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
@@ -28,9 +26,12 @@ void loop()
 
   bool motor_started = 0;
   unsigned long millis_at_motor_start = 0;
+  unsigned long millis_at_last_print = 0;
 
-//  Ultrasonic ultrasonic(6,5);      //objet pour contrôler le capteur ultrason
   NewPing sonar(6,5, 500);
+
+  int sonar_height;
+
   IMUsensor mpu;                  //objet pour récupérer les valeurs de l'IMU et calculer une orientation absolue
   PID pid;                        //objet qui gère le calcul des directives pour les moteurs
   MotorManager motors;            //objet qui gère le calcul des valeurs par moteur, et s'occupe de les contrôler
@@ -42,6 +43,7 @@ void loop()
 
   while(true)
   {
+    sonar_height = sonar.ping_cm() - 5;
     mpu.calcAbsoluteOrientation(0.99);
     mpu.actualizeSensorData();
 
@@ -62,7 +64,7 @@ void loop()
       }
 
       //calcul du PID avec les valeurs de l'IMU
-      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar.ping_cm() - 5, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 30);
+      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 30);
       float command_h = (pid.getCommandH() > 20) ? 20 : pid.getCommandH();
       motors.command( pid.getCommandX(), pid.getCommandY(), pid.getCommandZ(), command_h ); //commande des moteurs avec les valeurs données par le PID
 
@@ -74,9 +76,9 @@ void loop()
       Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
       Serial.print( motors.getMotorValue(2) );  Serial.print("\t");
       Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
-      Serial.print( mpu.getX(), 2); Serial.print("\t");
-      Serial.print( mpu.getY(), 2); Serial.print("\t");
-      Serial.print( mpu.getZ(), 2 ); Serial.print("\t | \t");
+      Serial.print( mpu.getX(), 2 ); Serial.print("\t");
+      Serial.print( mpu.getY(), 2 ); Serial.print("\t|\t");
+      Serial.print( sonar_height, 2) ; Serial.print("\t | \t");
       Serial.print( pid.getCommandH() ); Serial.print("\n");
 
 
