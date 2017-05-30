@@ -20,11 +20,16 @@ MotorManager::MotorManager()
   stop_motor = 1;
 
 }
+void MotorManager::setOn()
+{
+  stop_motor = 0;
+}
 
-void MotorManager::stop()
+
+void MotorManager::setOff()
 {
   for(unsigned int i = 0 ; i < 4 ; i++)
-  {  
+  {
     motor_value[i] = 0;
     motor[i].write(0);
   }

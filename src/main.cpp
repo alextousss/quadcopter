@@ -48,7 +48,7 @@ void loop()
     if( !digitalRead(9) == LOW )
     {
       pid.reset();
-      motors.stop();
+      motors.setOff();
       if(!safe_mode)
         motor_started = 0;
     }
@@ -58,6 +58,7 @@ void loop()
       {
         motor_started = 1;
         millis_at_motor_start = millis();
+        motors.setOn();
       }
 
       //calcul du PID avec les valeurs de l'IMU
@@ -84,9 +85,8 @@ void loop()
 
     if ( safe_mode && motor_started  && millis() - millis_at_motor_start > 3000 )
     {
-      motors.stop();
+      motors.setOff();
       Serial.println("stop bc of millis > 3000");
     }
-    delay(10);
   }
 }

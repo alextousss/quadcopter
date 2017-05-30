@@ -14,7 +14,8 @@ public:
   void command(float command_x, float command_y, float command_z, float command_h);
   float getMotorValue(int motor_id);
   void startMotors();
-  void stop();
+  void setOn();
+  void setOff();
 
 private:
   float motor_value[4];
