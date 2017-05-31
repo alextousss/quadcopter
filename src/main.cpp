@@ -8,7 +8,7 @@
 #include "motormanager.hpp"
 
 bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
-bool debug = 1;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
+bool debug = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 
 void setup()
 {
@@ -43,7 +43,7 @@ void loop()
 
   while(true)
   {
-    sonar_height = sonar.ping_cm() - 5;
+    sonar_height = sonar.ping_cm();
     mpu.calcAbsoluteOrientation(0.99);
     mpu.actualizeSensorData();
 
@@ -78,7 +78,7 @@ void loop()
       Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
       Serial.print( mpu.getX(), 2 ); Serial.print("\t");
       Serial.print( mpu.getY(), 2 ); Serial.print("\t|\t");
-      Serial.print( sonar_height, 2) ; Serial.print("\t | \t");
+      Serial.print( sonar_height , DEC) ; Serial.print("\t | \t");
       Serial.print( pid.getCommandH() ); Serial.print("\n");
 
 
