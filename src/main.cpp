@@ -2,6 +2,7 @@
 #include <Wire.h>
 #include <Servo.h>
 #include <NewPing.h>
+#include <VirtualWire.h>
 
 #include "IMUsensor.hpp"
 #include "PID.hpp"
@@ -9,11 +10,15 @@
 
 bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool debug = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
+bool radio_debug = 1;
 
 void setup()
 {
   pinMode(9, INPUT_PULLUP); //on configure les entrées pour pouvoir utiliser le bouton
   Serial.begin(9600);
+
+  vw_setup(1200);
+
 }
 
 
@@ -27,6 +32,9 @@ void loop()
   bool motor_started = 0;
   unsigned long millis_at_motor_start = 0;
   unsigned long millis_at_last_print = 0;
+  unsigned long millis_at_last_loop = 0;
+  unsigned long time_loop = 0;
+
 
   NewPing sonar(6,5, 500);
 
@@ -43,6 +51,9 @@ void loop()
 
   while(true)
   {
+    time_loop = millis() - millis_at_last_loop;
+    millis_at_last_loop = millis();
+
     sonar_height = sonar.ping_cm();
     mpu.calcAbsoluteOrientation(0.99);
     mpu.actualizeSensorData();
@@ -72,16 +83,33 @@ void loop()
 
     if(millis() - millis_at_last_print > 30)
     {
-      Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
-      Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
-      Serial.print( motors.getMotorValue(2) );  Serial.print("\t");
-      Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
-      Serial.print( mpu.getX(), 2 ); Serial.print("\t");
-      Serial.print( mpu.getY(), 2 ); Serial.print("\t|\t");
-      Serial.print( sonar_height , DEC) ; Serial.print("\t | \t");
-      Serial.print( pid.getCommandH() ); Serial.print("\n");
+      if(radio_debug)
+      {
+        uint8_t message[7];
+        message[0] = motors.getMotorValue(0);
+        message[1] = motors.getMotorValue(1);
+        message[2] = motors.getMotorValue(2);
+        message[3] = motors.getMotorValue(3);
+        message[4] = mpu.getX() + 127;
+        message[5] = mpu.getY() + 127;
+        message[6] = time_loop;
 
+        vw_send((uint8_t *)message, 7);
+        vw_wait_tx();
 
+      }
+      else
+      {
+        Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
+        Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
+        Serial.print( motors.getMotorValue(2) );  Serial.print("\t");
+        Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
+        Serial.print( mpu.getX(), 2 ); Serial.print("\t");
+        Serial.print( mpu.getY(), 2 ); Serial.print("\t|\t");
+        Serial.print( sonar_height , DEC) ; Serial.print("\t | \t");
+        Serial.print( pid.getCommandH() ); Serial.print("\n");
+
+      }
       millis_at_last_print = millis();
     }
 
