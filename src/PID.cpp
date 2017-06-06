@@ -30,7 +30,7 @@ PID::PID()
   gain_d_z = gain_D;
   gain_d_h = 0;
 
-  last_pid_calc = 0;
+  last_pid_calc = millis();
 
 }
 
