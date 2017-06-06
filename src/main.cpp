@@ -8,7 +8,7 @@
 #include "PID.hpp"
 #include "motormanager.hpp"
 
-bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool debug = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 bool radio_debug = 1;
 
@@ -46,6 +46,12 @@ void loop()
 
   mpu.calibrateSensors();
   motors.startMotors();
+
+  mpu.actualizeSensorData();
+  mpu.calcAbsoluteOrientation(0.97);
+
+  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 30);
+
 
 
   delay(1000);
@@ -89,16 +95,15 @@ void loop()
       if(radio_debug)
       {
         uint8_t message[7];
-        message[0] = pid.getCommandX();
-        message[1] = pid.getCommandY();
-        message[2] = pid.getCommandZ();
-        message[3] = pid.getCommandH();
+        message[0] = motors.getMotorValue(0);
+        message[1] = motors.getMotorValue(1);
+        message[2] = motors.getMotorValue(2);
+        message[3] = motors.getMotorValue(3);
         message[4] = mpu.getX() + 127;
         message[5] = mpu.getY() + 127;
         message[6] = time_loop;
 
         vw_send((uint8_t *)message, 7);
-        vw_wait_tx();
 
       }
       else
