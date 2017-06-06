@@ -47,6 +47,7 @@ void loop()
   mpu.calibrateSensors();
   motors.startMotors();
 
+
   delay(1000);
 
   while(true)
@@ -55,8 +56,10 @@ void loop()
     millis_at_last_loop = millis();
 
     sonar_height = sonar.ping_cm();
-    mpu.calcAbsoluteOrientation(0.99);
+
     mpu.actualizeSensorData();
+    mpu.calcAbsoluteOrientation(0.97);
+
 
     if( !digitalRead(9) == LOW )
     {
@@ -86,10 +89,10 @@ void loop()
       if(radio_debug)
       {
         uint8_t message[7];
-        message[0] = motors.getMotorValue(0);
-        message[1] = motors.getMotorValue(1);
-        message[2] = motors.getMotorValue(2);
-        message[3] = motors.getMotorValue(3);
+        message[0] = pid.getCommandX();
+        message[1] = pid.getCommandY();
+        message[2] = pid.getCommandZ();
+        message[3] = pid.getCommandH();
         message[4] = mpu.getX() + 127;
         message[5] = mpu.getY() + 127;
         message[6] = time_loop;
