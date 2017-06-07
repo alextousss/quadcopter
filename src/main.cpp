@@ -8,14 +8,15 @@
 #include "PID.hpp"
 #include "motormanager.hpp"
 
-bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
-bool debug = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
-bool radio_debug = 1;
+bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
+bool radio_debug = 0;
+bool serial_debug = 1;
 
 void setup()
 {
   pinMode(9, INPUT_PULLUP); //on configure les entrées pour pouvoir utiliser le bouton
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   vw_setup(1200);
 
@@ -24,7 +25,7 @@ void setup()
 
 void loop()
 {
-  if(debug)
+  if(wait_serial)
   {
     while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
   }
@@ -84,7 +85,7 @@ void loop()
       }
 
       //calcul du PID avec les valeurs de l'IMU
-      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 30);
+      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height + 10, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 20);
       float command_h = (pid.getCommandH() > 20) ? 20 : pid.getCommandH();
       motors.command( pid.getCommandX(), pid.getCommandY(), pid.getCommandZ(), command_h ); //commande des moteurs avec les valeurs données par le PID
 
@@ -106,7 +107,7 @@ void loop()
         vw_send((uint8_t *)message, 7);
 
       }
-      else
+      if(serial_debug)
       {
         Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
         Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
