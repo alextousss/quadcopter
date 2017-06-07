@@ -31,7 +31,7 @@ void MotorManager::setOff()
   for(unsigned int i = 0 ; i < 4 ; i++)
   {
     motor_value[i] = 0;
-    motor[i].write(0);
+    motor[i].write(55);
   }
 
   stop_motor = 1;
@@ -64,7 +64,7 @@ void MotorManager::command(float command_x, float command_y, float command_z, fl
     else
     {
       motor_value[i] = 0;
-      motor[i].write(0);
+      motor[i].write(55);
     }
   }
 

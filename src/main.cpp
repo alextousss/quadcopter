@@ -8,10 +8,10 @@
 #include "PID.hpp"
 #include "motormanager.hpp"
 
-bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
-bool radio_debug = 0;
-bool serial_debug = 1;
+bool radio_debug = 1;
+bool serial_debug = 0;
 
 void setup()
 {
@@ -51,7 +51,7 @@ void loop()
   mpu.actualizeSensorData();
   mpu.calcAbsoluteOrientation(0.97);
 
-  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 30);
+  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), 0, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 10);
 
 
 
@@ -85,7 +85,7 @@ void loop()
       }
 
       //calcul du PID avec les valeurs de l'IMU
-      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height + 10, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 20);
+      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height + 10, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 10);
       float command_h = (pid.getCommandH() > 20) ? 20 : pid.getCommandH();
       motors.command( pid.getCommandX(), pid.getCommandY(), pid.getCommandZ(), command_h ); //commande des moteurs avec les valeurs données par le PID
 
@@ -102,7 +102,7 @@ void loop()
         message[3] = motors.getMotorValue(3);
         message[4] = mpu.getX() + 127;
         message[5] = mpu.getY() + 127;
-        message[6] = time_loop;
+        message[6] = millis() / 1000;
 
         vw_send((uint8_t *)message, 7);
 
