@@ -1,8 +1,8 @@
 #include "PID.hpp"
 
-#define gain_P 0.70
+#define gain_P 0.85
 #define gain_I 0.1
-#define gain_D 0.30
+#define gain_D 0.35
 #define weight_H 2
 
 PID::PID()
@@ -45,6 +45,9 @@ void PID::reset()
   sum_error_y = 0;
   sum_error_z = 0;
   sum_error_h = 0;
+
+  last_pid_calc = millis();
+
 
 }
 
