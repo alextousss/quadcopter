@@ -10,7 +10,7 @@
 
 bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
-bool radio_debug = 0;
+bool radio_debug = 0;   // Attention ! Prends plus de 100ms de temps processeur à chaque envoi
 bool serial_debug = 1;
 
 void setup()
@@ -35,7 +35,8 @@ void loop()
   unsigned long millis_at_last_print = 0;
   unsigned long millis_at_last_loop = 0;
   unsigned long time_loop = 0;
-
+  unsigned long max_time_loop = 0;
+  unsigned long millis_at_last_max_time_loop = 0;
 
   NewPing sonar(6,5, 500);
 
@@ -62,6 +63,11 @@ void loop()
     time_loop = millis() - millis_at_last_loop;
     millis_at_last_loop = millis();
 
+    if( time_loop > max_time_loop  || millis() - millis_at_last_max_time_loop > 1000)
+    {
+      max_time_loop = time_loop;
+      millis_at_last_max_time_loop = millis();
+    }
     sonar_height = sonar.ping_cm();
 
     mpu.actualizeSensorData();
@@ -120,7 +126,7 @@ void loop()
         Serial.print( mpu.getY(), 2 ); Serial.print("\t|\t");
         Serial.print( sonar_height , DEC) ; Serial.print("\t | \t");
         Serial.print( pid.getCommandH() ); Serial.print("\t|\t");
-        Serial.print( time_loop ); Serial.print("\n");
+        Serial.print( max_time_loop ); Serial.print("\n");
       }
       millis_at_last_print = millis();
     }
