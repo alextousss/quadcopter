@@ -9,7 +9,7 @@ class PID
 public:
   PID();
   void reset();
-  
+
   void calcCommand( float orientation_x,
                   float orientation_y,
                   float orientation_z,
@@ -58,6 +58,11 @@ private:
   float command_y;
   float command_z;
   float command_h;
+
+  float gain_command_x; //gain for the final command
+  float gain_command_y;
+  float gain_command_z;
+  float gain_command_h;
 
   float sum_error_x; //sum of the errors, used for the integral correction
   float sum_error_y;

@@ -1,9 +1,14 @@
 #include "PID.hpp"
 
-#define gain_P 0.85
+#define gain_P 0.70
 #define gain_I 0.1
-#define gain_D 0.35
+#define gain_D 0.2
 #define weight_H 2
+
+#define GAIN_COMMAND_X 0.5
+#define GAIN_COMMAND_Y 0.5
+#define GAIN_COMMAND_Z 1
+#define GAIN_COMMAND_H 1
 
 PID::PID()
 {
@@ -29,6 +34,12 @@ PID::PID()
   gain_d_y = gain_D;
   gain_d_z = gain_D;
   gain_d_h = 0;
+
+  gain_command_x = GAIN_COMMAND_X;
+  gain_command_y = GAIN_COMMAND_Y;
+  gain_command_z = GAIN_COMMAND_Z;
+  gain_command_h = GAIN_COMMAND_H;
+
 
   last_pid_calc = millis();
 
@@ -86,10 +97,10 @@ void PID::calcCommand( float orientation_x,
   float d_z = (angular_speed_z - order_z - orientation_z) * -1 * gain_d_z;
   float d_h = 0;
 
-  command_x = p_x + i_x + d_x;
-  command_y = p_y + i_y + d_y;
-  command_z = p_z + i_z + d_z;
-  command_h = (p_h + i_h + d_h) * weight_H;
+  command_x = (p_x + i_x + d_x) * gain_command_x;
+  command_y = (p_y + i_y + d_y) * gain_command_x;
+  command_z = (p_z + i_z + d_z) * gain_command_x;
+  command_h = ((p_h + i_h + d_h) * weight_H) * gain_command_x;
 
   time_loop = millis() / 1000.0 - last_pid_calc / 1000.0;
   last_pid_calc = millis();
