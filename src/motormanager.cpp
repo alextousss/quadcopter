@@ -50,9 +50,9 @@ void MotorManager::command(float command_x, float command_y, float command_z, fl
 
   for(unsigned int i = 0 ; i < 4 ; i++)
   {
-    motor_value[i] += (160-55);
+    motor_value[i] += (160-55-13);
     motor_value[i] = (motor_value[i] <= 55) ? 55 : motor_value[i]; //just to make sure that the motor values are always between 55 (stop of the motors) and 160 (max value)
-    motor_value[i] = (motor_value[i] > 160) ? 160 : motor_value[i];
+    motor_value[i] = (motor_value[i] > 150) ? 150 : motor_value[i];
   }
 
   for(int i = 0; i <= 3 ; i++)

@@ -5,8 +5,8 @@
 #define gain_D 0.2
 #define weight_H 2
 
-#define GAIN_COMMAND_X 0.5
-#define GAIN_COMMAND_Y 0.5
+#define GAIN_COMMAND_X 0.65
+#define GAIN_COMMAND_Y 0.65
 #define GAIN_COMMAND_Z 1
 #define GAIN_COMMAND_H 1
 
