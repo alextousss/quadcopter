@@ -13,10 +13,10 @@
 #define MOTOR_MAX_DURATION 5000
 
 
-bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 bool radio_debug = 0;   // Attention ! Prends plus de 100ms de temps processeur à chaque envoi
-bool serial_debug = 1;
+bool serial_debug = 0;
 
 void setup()
 {
@@ -45,7 +45,10 @@ void loop()
 
   NewPing sonar(6,5, 500);
 
-  int sonar_height;
+  float sonar_height = 0;
+  float last_sonar_height = 0;
+  unsigned long time_at_last_sonar_height = 0;
+  float sonar_speed = 0;
 
   IMUsensor mpu;                  //objet pour récupérer les valeurs de l'IMU et calculer une orientation absolue
   PID pid;                        //objet qui gère le calcul des directives pour les moteurs
@@ -65,6 +68,10 @@ void loop()
 
   while(true)
   {
+
+    Serial.print( sonar_height, 2 ); Serial.print("\t");
+    Serial.print( sonar_speed, 2 ); Serial.println("");
+
     time_loop = millis() - millis_at_last_loop;
     millis_at_last_loop = millis();
 
@@ -73,7 +80,15 @@ void loop()
       max_time_loop = time_loop;
       millis_at_last_max_time_loop = millis();
     }
-    sonar_height = sonar.ping_cm();
+
+    if( millis() - time_at_last_sonar_height > 250 )
+    {
+      last_sonar_height = sonar_height;
+      sonar_height = sonar.ping_cm();
+      sonar_speed = ( sonar_height - last_sonar_height ) / ( ( millis() - time_at_last_sonar_height ) / 1000.0f );
+      time_at_last_sonar_height = millis();
+    }
+
 
     mpu.actualizeSensorData();
     mpu.calcAbsoluteOrientation(0.97);
@@ -138,7 +153,8 @@ void loop()
         Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
         Serial.print( mpu.getX(), 2 ); Serial.print("\t");
         Serial.print( mpu.getY(), 2 ); Serial.print("\t|\t");
-        Serial.print( sonar_height , DEC) ; Serial.print("\t | \t");
+        Serial.print( sonar_height, 2 ); Serial.print("\t");
+        Serial.print( sonar_speed, 2 ); Serial.print("\t | \t");
         Serial.print( pid.getCommandH() ); Serial.print("\t|\t");
         Serial.print( max_time_loop ); Serial.print("\n");
       }
