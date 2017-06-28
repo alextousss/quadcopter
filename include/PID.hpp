@@ -14,6 +14,7 @@ public:
                   float orientation_y,
                   float orientation_z,
                   float height,
+                  float vertical_speed,
                   float angular_speed_x,
                   float angular_speed_y,
                   float angular_speed_z,

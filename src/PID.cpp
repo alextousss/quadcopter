@@ -28,12 +28,12 @@ PID::PID()
   gain_i_x = gain_I; //gain for the integral correction
   gain_i_y = gain_I;
   gain_i_z = gain_I;
-  gain_i_h = 0;
+  gain_i_h = 0.5;
 
   gain_d_x = gain_D; //gain for the derivation correction
   gain_d_y = gain_D;
   gain_d_z = gain_D;
-  gain_d_h = 0;
+  gain_d_h = 0.2;
 
   gain_command_x = GAIN_COMMAND_X;
   gain_command_y = GAIN_COMMAND_Y;
@@ -66,6 +66,7 @@ void PID::calcCommand( float orientation_x,
                 float orientation_y,        //orientation de l'IMU
                 float orientation_z,
                 float height,               //hauteur
+                float vertical_speed,
                 float angular_speed_x,      //vitesse angulaire
                 float angular_speed_y,
                 float angular_speed_z,
@@ -95,7 +96,7 @@ void PID::calcCommand( float orientation_x,
   float d_x = (angular_speed_x - order_x - orientation_x) * -1 * gain_d_x;
   float d_y = (angular_speed_y - order_y - orientation_y) * -1 * gain_d_y;
   float d_z = (angular_speed_z - order_z - orientation_z) * -1 * gain_d_z;
-  float d_h = 0;
+  float d_h = (vertical_speed - order_h - height) * -1 * gain_d_h;
 
   command_x = (p_x + i_x + d_x) * gain_command_x;
   command_y = (p_y + i_y + d_y) * gain_command_x;
