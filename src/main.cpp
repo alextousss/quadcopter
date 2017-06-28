@@ -16,7 +16,7 @@
 bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 bool radio_debug = 0;   // Attention ! Prends plus de 100ms de temps processeur à chaque envoi
-bool serial_debug = 0;
+bool serial_debug = 1;
 
 void setup()
 {
@@ -60,7 +60,7 @@ void loop()
   mpu.actualizeSensorData();
   mpu.calcAbsoluteOrientation(0.97);
 
-  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), 0, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 15);
+  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), 0, 0, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 15);
 
 
 
@@ -68,10 +68,6 @@ void loop()
 
   while(true)
   {
-
-    Serial.print( sonar_height, 2 ); Serial.print("\t");
-    Serial.print( sonar_speed, 2 ); Serial.println("");
-
     time_loop = millis() - millis_at_last_loop;
     millis_at_last_loop = millis();
 
@@ -111,7 +107,7 @@ void loop()
       }
 
       //calcul du PID avec les valeurs de l'IMU
-      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height , mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 10);
+      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height , sonar_speed, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 10);
       float command_h = pid.getCommandH();
       command_h = (command_h > 30) ? 30 : command_h;
       command_h = (command_h < -30) ? -30 : command_h;
