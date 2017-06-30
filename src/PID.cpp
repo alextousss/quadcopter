@@ -1,9 +1,9 @@
 #include "PID.hpp"
 
-#define gain_P 0.70
-#define gain_I 0.1
-#define gain_D 0.2
-#define weight_H 2
+#define gain_P 0.8
+#define gain_I 0.075
+#define gain_D 0.1
+#define weight_H 1
 
 #define GAIN_COMMAND_X 0.65
 #define GAIN_COMMAND_Y 0.65

@@ -13,7 +13,7 @@
 #define MOTOR_MAX_DURATION 5000
 
 
-bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 bool radio_debug = 0;   // Attention ! Prends plus de 100ms de temps processeur à chaque envoi
 bool serial_debug = 1;
