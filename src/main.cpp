@@ -30,11 +30,6 @@ void setup()
 
 void loop()
 {
-  if(wait_serial)
-  {
-    while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
-  }
-
   bool motor_started = 0;
   unsigned long millis_at_motor_start = 0;
   unsigned long millis_at_last_print = 0;
@@ -54,9 +49,14 @@ void loop()
   PID pid;                        //objet qui gère le calcul des directives pour les moteurs
   MotorManager motors;            //objet qui gère le calcul des valeurs par moteur, et s'occupe de les contrôler
 
-  mpu.calibrateSensors();
   motors.startMotors();
+  
+	if(wait_serial)
+  {
+    while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
+  }
 
+  mpu.calibrateSensors();
   mpu.actualizeSensorData();
   mpu.calcAbsoluteOrientation(0.97);
 
@@ -77,10 +77,10 @@ void loop()
       millis_at_last_max_time_loop = millis();
     }
 
-    if( millis() - time_at_last_sonar_height > 250 )
+    if( millis() - time_at_last_sonar_height > 125 )
     {
       last_sonar_height = sonar_height;
-      sonar_height = sonar.ping_cm();
+      sonar_height = sonar.ping_cm(80);
       sonar_speed = ( sonar_height - last_sonar_height ) / ( ( millis() - time_at_last_sonar_height ) / 1000.0f );
       time_at_last_sonar_height = millis();
     }
@@ -149,6 +149,7 @@ void loop()
         Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
         Serial.print( mpu.getX(), 2 ); Serial.print("\t");
         Serial.print( mpu.getY(), 2 ); Serial.print("\t|\t");
+        Serial.print( mpu.getZ(), 2 ); Serial.print("\t|\t");
         Serial.print( sonar_height, 2 ); Serial.print("\t");
         Serial.print( sonar_speed, 2 ); Serial.print("\t | \t");
         Serial.print( pid.getCommandH() ); Serial.print("\t|\t");
