@@ -54,13 +54,13 @@ void loop()
 	if(wait_serial)
   {
     while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
-  }
+	}  
 
   mpu.calibrateSensors();
   mpu.actualizeSensorData();
   mpu.calcAbsoluteOrientation(0.97);
 
-  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), 0, 0, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 15);
+  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), 0, 0, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 18);
 
 
 

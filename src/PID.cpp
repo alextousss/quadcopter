@@ -1,8 +1,8 @@
 #include "PID.hpp"
 
-#define gain_P 0.9
-#define gain_I 0.3
-#define gain_D 0.20
+#define gain_P 0.95
+#define gain_I 0.25
+#define gain_D 0.2
 #define weight_H 1
 
 #define GAIN_COMMAND_X 0.65
@@ -24,7 +24,7 @@ PID::PID()
   gain_p_x = gain_P; //gain for the proportional correction
   gain_p_y = gain_P;
   gain_p_z = 1;
-  gain_p_h = 1;
+  gain_p_h = 1.05;
 
   gain_i_x = gain_I; //gain for the integral correction
   gain_i_y = gain_I;

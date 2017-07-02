@@ -130,9 +130,9 @@ bool IMUsensor::calibrateSensors()
 		  offset_gyro_x += raw_accel_x;
 			offset_gyro_y += raw_accel_y;
 	 	  offset_gyro_z += raw_accel_z;
-			Serial.print(offset_gyro_x / i); Serial.print("\t");
-			Serial.print(offset_gyro_y / i); Serial.print("\t");
-			Serial.print(offset_gyro_z / i); Serial.println("\t");
+//			Serial.print(offset_gyro_x / i); Serial.print("\t");
+//			Serial.print(offset_gyro_y / i); Serial.print("\t");
+//			Serial.print(offset_gyro_z / i); Serial.println("\t");
 		}
     delay(10);
   }
