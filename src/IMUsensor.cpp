@@ -120,14 +120,20 @@ bool IMUsensor::actualizeSensorData()
 
 bool IMUsensor::calibrateSensors()
 {
-  #define NUM_SAMPLES 100
+  #define NUM_SAMPLES 600
 
   for (int i = 0 ; i < NUM_SAMPLES ; i++) //assumes that the quadcopter has no motio during the calibration
   {
-    actualizeSensorData();
-    offset_gyro_x += raw_accel_x;
-    offset_gyro_y += raw_accel_y;
-    offset_gyro_z += raw_accel_z;
+		if(i > 100)
+		{
+		  actualizeSensorData();
+		  offset_gyro_x += raw_accel_x;
+			offset_gyro_y += raw_accel_y;
+	 	  offset_gyro_z += raw_accel_z;
+			Serial.print(offset_gyro_x / i); Serial.print("\t");
+			Serial.print(offset_gyro_y / i); Serial.print("\t");
+			Serial.print(offset_gyro_z / i); Serial.println("\t");
+		}
     delay(10);
   }
 
