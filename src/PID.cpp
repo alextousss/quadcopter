@@ -1,8 +1,8 @@
 #include "PID.hpp"
 
-#define gain_P 0.8
-#define gain_I 0.075
-#define gain_D 0.1
+#define gain_P 0.9
+#define gain_I 0.3
+#define gain_D 0.20
 #define weight_H 1
 
 #define GAIN_COMMAND_X 0.65
@@ -19,21 +19,22 @@ PID::PID()
   sum_error_x = 0;
   sum_error_y = 0;
   sum_error_z = 0;
+	sum_error_h = 0;
 
   gain_p_x = gain_P; //gain for the proportional correction
   gain_p_y = gain_P;
-  gain_p_z = gain_P;
-  gain_p_h = 0.80;
+  gain_p_z = 1;
+  gain_p_h = 1;
 
   gain_i_x = gain_I; //gain for the integral correction
   gain_i_y = gain_I;
-  gain_i_z = gain_I;
+  gain_i_z = 0.025;
   gain_i_h = 0.5;
 
   gain_d_x = gain_D; //gain for the derivation correction
   gain_d_y = gain_D;
-  gain_d_z = gain_D;
-  gain_d_h = 0.2;
+  gain_d_z = 0.20;
+  gain_d_h = 0.010;
 
   gain_command_x = GAIN_COMMAND_X;
   gain_command_y = GAIN_COMMAND_Y;
@@ -66,7 +67,7 @@ void PID::calcCommand( float orientation_x,
                 float orientation_y,        //orientation de l'IMU
                 float orientation_z,
                 float height,               //hauteur
-                float vertical_speed,
+                float vertical_speed,				//vitesse verticale
                 float angular_speed_x,      //vitesse angulaire
                 float angular_speed_y,
                 float angular_speed_z,

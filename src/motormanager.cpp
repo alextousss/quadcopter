@@ -41,16 +41,16 @@ void MotorManager::setOff()
 void MotorManager::command(float command_x, float command_y, float command_z, float command_h)
 {
 
-  motor_value[0] = gain_y * ( 1 * command_y) + gain_x * (-1 * command_x) /*+ ( 1 * command_z)*/ + gain_h * command_h;
-  motor_value[1] = gain_y * ( 1 * command_y) + gain_x * ( 1 * command_x) /*+ (-1 * command_z)*/ + gain_h * command_h;
-  motor_value[2] = gain_y * (-1 * command_y) + gain_x * ( 1 * command_x) /*+ ( 1 * command_z)*/ + gain_h * command_h;
-  motor_value[3] = gain_y * (-1 * command_y) + gain_x * (-1 * command_x) /*+ (-1 * command_z)*/ + gain_h * command_h;
+  motor_value[0] = gain_y * ( 1 * command_y) + gain_x * (-1 * command_x) + (-1 * command_z) + gain_h * command_h;
+  motor_value[1] = gain_y * ( 1 * command_y) + gain_x * ( 1 * command_x) + ( 1 * command_z) + gain_h * command_h;
+  motor_value[2] = gain_y * (-1 * command_y) + gain_x * ( 1 * command_x) + (-1 * command_z) + gain_h * command_h;
+  motor_value[3] = gain_y * (-1 * command_y) + gain_x * (-1 * command_x) + ( 1 * command_z) + gain_h * command_h;
 
 
 
   for(unsigned int i = 0 ; i < 4 ; i++)
   {
-    motor_value[i] += (160-55-20);
+    motor_value[i] += (160-55-30);
     motor_value[i] = (motor_value[i] <= 55) ? 55 : motor_value[i]; //just to make sure that the motor values are always between 55 (stop of the motors) and 160 (max value)
     motor_value[i] = (motor_value[i] > 150) ? 150 : motor_value[i];
   }
