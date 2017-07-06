@@ -15,7 +15,6 @@
 
 bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
-bool radio_debug = 0;   // Attention ! Prends plus de 100ms de temps processeur à chaque envoi
 bool serial_debug = 1;
 
 void setup()
@@ -23,7 +22,7 @@ void setup()
   pinMode(9, INPUT_PULLUP); //on configure les entrées pour pouvoir utiliser le bouton
   Serial.begin(115200);
 
-  vw_setup(1200);
+//  vw_setup(1200);
 
 }
 
@@ -58,9 +57,9 @@ void loop()
 
   mpu.calibrateSensors();
   mpu.actualizeSensorData();
-  mpu.calcAbsoluteOrientation(0.97);
+  mpu.calcAbsoluteOrientation(0.99);
 
-  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), 0, 0, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 18);
+  pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), 0, 0, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 15);
 
 
 
@@ -77,11 +76,11 @@ void loop()
       millis_at_last_max_time_loop = millis();
     }
 
-    if( millis() - time_at_last_sonar_height > 125 )
+    if( millis() - time_at_last_sonar_height > 50 )
     {
       last_sonar_height = sonar_height;
       sonar_height = sonar.ping_cm(80);
-      sonar_speed = ( sonar_height - last_sonar_height ) / ( ( millis() - time_at_last_sonar_height ) / 1000.0f );
+      sonar_speed = ( sonar_height - last_sonar_height ) / ( ( millis() - time_at_last_sonar_height ) / 400.0f );
       time_at_last_sonar_height = millis();
     }
 
@@ -107,9 +106,9 @@ void loop()
       }
 
       //calcul du PID avec les valeurs de l'IMU
-      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height , sonar_speed, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 10);
+      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height , sonar_speed, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 15);
       float command_h = pid.getCommandH();
-      command_h = (command_h > 30) ? 30 : command_h;
+      command_h = (command_h > 15) ? 15 : command_h;
       command_h = (command_h < -30) ? -30 : command_h;
 
       motors.command( pid.getCommandX(), pid.getCommandY(), pid.getCommandZ(), command_h ); //commande des moteurs avec les valeurs données par le PID
@@ -127,7 +126,7 @@ void loop()
 
     if(millis() - millis_at_last_print > PRINT_PERIOD)
     {
-      if(radio_debug)
+  /*  if(radio_debug)
       {
         uint8_t message[7];
         message[0] = motors.getMotorValue(0);
@@ -141,7 +140,7 @@ void loop()
         vw_send((uint8_t *)message, 7);
 
       }
-      if(serial_debug)
+*/    if(serial_debug)
       {
         Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
         Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
