@@ -37,6 +37,7 @@ public:
 
 
 private:
+	float last_height;
   float gain_p_x; //gain for the proportional correction
   float gain_p_y;
   float gain_p_z;
