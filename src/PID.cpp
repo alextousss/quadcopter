@@ -1,9 +1,9 @@
 #include "PID.hpp"
 
-#define gain_P 0.95
-#define gain_I 0.4
-#define gain_D 0.15
-#define weight_H 1
+#define gain_P 0.6
+#define gain_I 0.15
+#define gain_D 0.4
+#define weight_H 0.7
 
 #define GAIN_COMMAND_X 0.65
 #define GAIN_COMMAND_Y 0.65
@@ -12,6 +12,8 @@
 
 PID::PID()
 {
+	last_height = 0;
+
   command_x = 0;
   command_y = 0;
   command_z = 0;
@@ -24,17 +26,17 @@ PID::PID()
   gain_p_x = gain_P; //gain for the proportional correction
   gain_p_y = gain_P;
   gain_p_z = 1;
-  gain_p_h = 1;
+  gain_p_h = 0.25;
 
   gain_i_x = gain_I; //gain for the integral correction
   gain_i_y = gain_I;
   gain_i_z = 0.025;
-  gain_i_h = 0.7;
+  gain_i_h = 0.25;
 
   gain_d_x = gain_D; //gain for the derivation correction
   gain_d_y = gain_D;
   gain_d_z = 0.20;
-  gain_d_h = 0.05;
+  gain_d_h = 0.10;
 
   gain_command_x = GAIN_COMMAND_X;
   gain_command_y = GAIN_COMMAND_Y;
@@ -76,6 +78,25 @@ void PID::calcCommand( float orientation_x,
                 float order_z,
                 float order_h )
 {
+	if( height == 0 )
+	{
+		height = last_height;
+	}
+ 	else
+	{
+		last_height = height;
+	}
+
+	if( order_h - height > 5) 
+	{
+		order_h = height + 5;
+	}
+	
+	if( order_h - height < -5) 
+	{
+		order_h = height - 5;
+	}
+
   sum_error_x += (orientation_x - order_x) * time_loop * 1;
   sum_error_y += (orientation_y - order_y) * time_loop * 1;
   sum_error_z += (orientation_z - order_z) * time_loop * 1;
@@ -94,7 +115,7 @@ void PID::calcCommand( float orientation_x,
   float i_h = (sum_error_h * -1) * gain_i_h;
 
 
-  float d_x = (angular_speed_x - order_x - orientation_x) * -1 * gain_d_x;
+  float d_x = (angular_speed_x  - order_x - orientation_x) * -1 * gain_d_x;
   float d_y = (angular_speed_y - order_y - orientation_y) * -1 * gain_d_y;
   float d_z = (angular_speed_z - order_z - orientation_z) * -1 * gain_d_z;
   float d_h = (vertical_speed) * -1 * gain_d_h;
