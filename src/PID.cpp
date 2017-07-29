@@ -1,8 +1,8 @@
 #include "PID.hpp"
 
-#define gain_P 1.30
+#define gain_P 2
 #define gain_I 0.000
-#define gain_D 0.45
+#define gain_D 1
 #define weight_H 0.7
 
 #define GAIN_COMMAND_X 1
@@ -27,6 +27,11 @@ PID::PID()
   sum_error_z = 0;
 	sum_error_h = 0;
 
+  last_error_x = 0;
+  last_error_y = 0;
+  last_error_z = 0;
+  last_error_h = 0;
+
   gain_p_x = gain_P; //gain for the proportional correction
   gain_p_y = gain_P;
   gain_p_z = 1;
@@ -41,11 +46,6 @@ PID::PID()
   gain_d_y = gain_D;
   gain_d_z = 0.20;
   gain_d_h = 0.15;
-
-  gain_command_x = GAIN_COMMAND_X;
-  gain_command_y = GAIN_COMMAND_Y;
-  gain_command_z = GAIN_COMMAND_Z;
-  gain_command_h = GAIN_COMMAND_H;
 
 
   last_pid_calc = millis();
@@ -82,35 +82,33 @@ void PID::calcCommand( float orientation_x,
                 float order_z,
                 float order_h )
 {
-	if( height == 0 )
-	{
+  time_loop = millis() / 1000.0 - last_pid_calc / 1000.0;
+  last_pid_calc = millis();
+
+	if( height == 0 ) //if the ultrasonic sensors returns shit, we use the last good measurement he gave us
 		height = last_height;
-	}
  	else
-	{
 		last_height = height;
-	}
 
-	if( order_h - height > 5) 
-	{
-		order_h = height + 5;
-	}
-	
-	if( order_h - height < -5) 
-	{
-		order_h = height - 5;
-	}
-
-  sum_error_x += (orientation_x - order_x) * time_loop * 1;
-  sum_error_y += (orientation_y - order_y) * time_loop * 1;
-  sum_error_z += (orientation_z - order_z) * time_loop * 1;
-  sum_error_h += (height - order_h) * time_loop * 1;
+	if( order_h - height > 5) 	order_h = height + 5; //here we just
+	if( order_h - height < -5)	order_h = height - 5;
 
 
-  float p_x = (order_x - orientation_x) * gain_p_x;
-  float p_y = (order_y - orientation_y) * gain_p_y;
-  float p_z = (order_z - orientation_z) * gain_p_z;
-  float p_h = (order_h - height) * gain_p_h;
+  float error_x = orientation_x - order_x;
+  float error_y = orientation_y - order_y;
+  float error_z = orientation_z - order_z;
+  float error_h = height - order_h;
+
+  sum_error_x += error_x * time_loop;
+  sum_error_y += error_y * time_loop;
+  sum_error_z += error_z * time_loop;
+  sum_error_h += error_h * time_loop;
+
+
+  float p_x = error_x * gain_p_x;
+  float p_y = error_y  * gain_p_y;
+  float p_z = error_z  * gain_p_z;
+  float p_h = error_h  * gain_p_h;
 
 
   float i_x = (sum_error_x * -1) * gain_i_x;
@@ -119,17 +117,23 @@ void PID::calcCommand( float orientation_x,
   float i_h = (sum_error_h * -1) * gain_i_h;
 
 
-  float d_x = (angular_speed_x)  * gain_d_x;
-  float d_y = (angular_speed_y)  * gain_d_y;
-  float d_z = (angular_speed_z - order_z - orientation_z) * -1 * gain_d_z;
-  float d_h = (vertical_speed) * -1 * gain_d_h;
+  float d_x = ( error_x - last_error_x ) / time_loop      * gain_d_x;
+  float d_y = ( error_x - last_error_x ) / time_loop      * gain_d_y;
+  float d_z = ( error_x - last_error_x ) / time_loop * -1 * gain_d_z;
+  float d_h = ( error_x - last_error_x ) / time_loop * -1 * gain_d_h;
 
 
-	
-  command_x = (p_x + i_x + d_x) * gain_command_x;
-  command_y = (p_y + i_y + d_y) * gain_command_x;
-  command_z = (p_z + i_z + d_z) * gain_command_x;
-  command_h = ((p_h + i_h + d_h) * weight_H) * gain_command_x;
+
+  command_x = (p_x + i_x + d_x);
+  command_y = (p_y + i_y + d_y);
+  command_z = (p_z + i_z + d_z);
+  command_h = ((p_h + i_h + d_h) * weight_H);
+
+  last_error_x = error_x;
+  last_error_y = error_y;
+  last_error_z = error_z;
+  last_error_h = error_h;
+
 
 	if(DEBUG)
 	{
@@ -140,6 +144,5 @@ void PID::calcCommand( float orientation_x,
 	}
 
 
-  time_loop = millis() / 1000.0 - last_pid_calc / 1000.0;
-	last_pid_calc = millis();
+
 }

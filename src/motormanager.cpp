@@ -12,8 +12,8 @@ MotorManager::MotorManager()
   motor[2].attach(20);
   motor[3].attach(21);
 
-  gain_x = 1.7;
-  gain_y = 1.7;
+  gain_x = 1;
+  gain_y = 1;
   gain_z = 1;
   gain_h = 1;
 

@@ -72,6 +72,11 @@ private:
   float sum_error_z;
   float sum_error_h;
 
+  float last_error_x;
+  float last_error_y;
+  float last_error_z;
+  float last_error_h;
+
   unsigned long last_pid_calc;
   float time_loop;
 };
