@@ -22,8 +22,8 @@ public:
   float getAngularSpeedY() { return last_loop_gyro_y ; }
   float getAngularSpeedZ() { return last_loop_gyro_z ; }
 
-  float getX() { return orientation_x - 1.50 ; }
-  float getY() { return orientation_y - 1.30 ; }
+  float getX() { return orientation_x - 0.5 ; }
+  float getY() { return orientation_y + 1	; }
   float getZ() { return orientation_z ; }
 
 

@@ -120,11 +120,11 @@ bool IMUsensor::actualizeSensorData()
 
 bool IMUsensor::calibrateSensors()
 {
-  #define NUM_SAMPLES 600
+  #define NUM_SAMPLES 800
 
   for (int i = 0 ; i < NUM_SAMPLES ; i++) //assumes that the quadcopter has no motio during the calibration
   {
-		if(i > 100)
+		if(i > 150)
 		{
 		  actualizeSensorData();
 		  offset_gyro_x += raw_accel_x;
