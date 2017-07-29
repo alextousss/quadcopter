@@ -1,14 +1,18 @@
 #include "PID.hpp"
 
-#define gain_P 0.6
-#define gain_I 0.15
-#define gain_D 0.4
+#define gain_P 1.30
+#define gain_I 0.000
+#define gain_D 0.45
 #define weight_H 0.7
 
-#define GAIN_COMMAND_X 0.65
-#define GAIN_COMMAND_Y 0.65
-#define GAIN_COMMAND_Z 1
+#define GAIN_COMMAND_X 1
+#define GAIN_COMMAND_Y 1
+#define GAIN_COMMAND_Z 0.7
 #define GAIN_COMMAND_H 1
+
+#define DEBUG 0
+
+
 
 PID::PID()
 {
@@ -26,17 +30,17 @@ PID::PID()
   gain_p_x = gain_P; //gain for the proportional correction
   gain_p_y = gain_P;
   gain_p_z = 1;
-  gain_p_h = 0.25;
+  gain_p_h = 0.3;
 
   gain_i_x = gain_I; //gain for the integral correction
   gain_i_y = gain_I;
   gain_i_z = 0.025;
-  gain_i_h = 0.25;
+  gain_i_h = 0.2;
 
   gain_d_x = gain_D; //gain for the derivation correction
   gain_d_y = gain_D;
   gain_d_z = 0.20;
-  gain_d_h = 0.10;
+  gain_d_h = 0.15;
 
   gain_command_x = GAIN_COMMAND_X;
   gain_command_y = GAIN_COMMAND_Y;
@@ -115,16 +119,27 @@ void PID::calcCommand( float orientation_x,
   float i_h = (sum_error_h * -1) * gain_i_h;
 
 
-  float d_x = (angular_speed_x  - order_x - orientation_x) * -1 * gain_d_x;
-  float d_y = (angular_speed_y - order_y - orientation_y) * -1 * gain_d_y;
+  float d_x = (angular_speed_x)  * gain_d_x;
+  float d_y = (angular_speed_y)  * gain_d_y;
   float d_z = (angular_speed_z - order_z - orientation_z) * -1 * gain_d_z;
   float d_h = (vertical_speed) * -1 * gain_d_h;
 
+
+	
   command_x = (p_x + i_x + d_x) * gain_command_x;
   command_y = (p_y + i_y + d_y) * gain_command_x;
   command_z = (p_z + i_z + d_z) * gain_command_x;
   command_h = ((p_h + i_h + d_h) * weight_H) * gain_command_x;
 
+	if(DEBUG)
+	{
+		Serial.print( p_x , 2);  Serial.print("\t");
+		Serial.print( i_x , 2);  Serial.print("\t");
+		Serial.print( d_x , 2);  Serial.print("\t");
+		Serial.print( command_x , 2);  Serial.print("\n");
+	}
+
+
   time_loop = millis() / 1000.0 - last_pid_calc / 1000.0;
-  last_pid_calc = millis();
+	last_pid_calc = millis();
 }
