@@ -10,10 +10,10 @@
 
 
 #define PRINT_PERIOD 30
-#define MOTOR_MAX_DURATION 5000
+#define MOTOR_MAX_DURATION 4000
 
 
-bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 bool serial_debug = 1;
 
@@ -29,6 +29,7 @@ void setup()
 
 void loop()
 {
+	bool landing = 0;
   bool motor_started = 0;
   unsigned long millis_at_motor_start = 0;
   unsigned long millis_at_last_print = 0;
@@ -36,6 +37,8 @@ void loop()
   unsigned long time_loop = 0;
   unsigned long max_time_loop = 0;
   unsigned long millis_at_last_max_time_loop = 0;
+	float desired_height = 15;
+
 
   NewPing sonar(6,5, 500);
 
@@ -91,13 +94,38 @@ void loop()
 
     if( !digitalRead(9) == LOW )
     {
-      pid.reset();
-      motors.setOff();
-      if(!safe_mode)
+			if(motor_started)
+			{
+				pid.reset();
+//				landing = 1;
+			}
+
+			if(landing)
+			{
+				
+				pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height , sonar_speed, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 0);
+			  float command_h = pid.getCommandH();
+			  command_h = (command_h > 15) ? 15 : command_h;
+			  command_h = (command_h < -30) ? -30 : command_h;
+
+			  motors.command( pid.getCommandX(), pid.getCommandY(), pid.getCommandZ(), command_h ); //commande des moteurs avec les valeurs données par le PID
+				
+			} 
+		
+			
+//				pid.reset();
+//				motors.setOff();
+			
+			if(!safe_mode)
         motor_started = 0;
     }
     else
     {
+			if(landing)
+			{
+				pid.reset();
+				motors.setOff();
+			}
       if(!motor_started)
       {
         motor_started = 1;
@@ -106,7 +134,7 @@ void loop()
       }
 
       //calcul du PID avec les valeurs de l'IMU
-      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height , sonar_speed, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 15);
+      pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height , sonar_speed, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, desired_height);
       float command_h = pid.getCommandH();
       command_h = (command_h > 15) ? 15 : command_h;
       command_h = (command_h < -30) ? -30 : command_h;
@@ -151,7 +179,9 @@ void loop()
         Serial.print( mpu.getZ(), 2 ); Serial.print("\t|\t");
         Serial.print( sonar_height, 2 ); Serial.print("\t");
         Serial.print( sonar_speed, 2 ); Serial.print("\t | \t");
-        Serial.print( pid.getCommandH() ); Serial.print("\t|\t");
+        Serial.print( pid.getCommandX() ); Serial.print("\t");
+        Serial.print( pid.getDerivateCorrectionX( mpu.getAngularSpeedX() ) ); Serial.print("\t");
+        Serial.print( pid.getProportionalCorrectionX (0, mpu.getX()) ); Serial.print("\t|\t");
         Serial.print( max_time_loop ); Serial.print("\n");
       }
       millis_at_last_print = millis();
