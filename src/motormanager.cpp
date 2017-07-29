@@ -12,8 +12,8 @@ MotorManager::MotorManager()
   motor[2].attach(20);
   motor[3].attach(21);
 
-  gain_x = 1.5;
-  gain_y = 1.5;
+  gain_x = 1.7;
+  gain_y = 1.7;
   gain_z = 1;
   gain_h = 1;
 
@@ -50,9 +50,9 @@ void MotorManager::command(float command_x, float command_y, float command_z, fl
 
   for(unsigned int i = 0 ; i < 4 ; i++)
   {
-    motor_value[i] += (160-55) - 25;
+    motor_value[i] += (160-55) - 33;
     motor_value[i] = (motor_value[i] <= 55) ? 55 : motor_value[i]; //just to make sure that the motor values are always between 55 (stop of the motors) and 160 (max value)
-    motor_value[i] = (motor_value[i] > 135) ? 135 : motor_value[i];
+    motor_value[i] = (motor_value[i] > 120) ? 120 : motor_value[i];
   }
 
   for(int i = 0; i <= 3 ; i++)
