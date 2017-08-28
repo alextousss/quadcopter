@@ -7,23 +7,38 @@
 #include "IMUsensor.hpp"
 #include "PID.hpp"
 #include "motormanager.hpp"
+#include <VirtualWire.h>
 
-
+#define PERCENTAGE_RADIO_SENT 10
 #define PRINT_PERIOD 30
 #define MOTOR_MAX_DURATION 4000
+#define MAX_SAMPLE_BUFFER_SIZE  2000
 
 
-bool safe_mode = 0;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
+struct Sample
+{
+  float x;
+  float y;
+  float z;
+  float command_x;
+  float command_y;
+  float command_z;
+};
+
+Sample samples[MAX_SAMPLE_BUFFER_SIZE];
+
+bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 bool serial_debug = 1;
+bool radio_debug = 1;
 
 void setup()
 {
   pinMode(9, INPUT_PULLUP); //on configure les entrées pour pouvoir utiliser le bouton
   Serial.begin(115200);
-
-//  vw_setup(1200);
-
+  Serial.println("setup");
+  vw_setup(1200);
+  Serial.println("setup end");
 }
 
 
@@ -31,42 +46,46 @@ void loop()
 {
 	bool landing = 0;
   bool motor_started = 0;
+
   unsigned long millis_at_motor_start = 0;
   unsigned long millis_at_last_print = 0;
   unsigned long millis_at_last_loop = 0;
+  unsigned long millis_at_last_max_time_loop = 0;
   unsigned long time_loop = 0;
   unsigned long max_time_loop = 0;
-  unsigned long millis_at_last_max_time_loop = 0;
-	float desired_height = 15;
 
-
-  NewPing sonar(6,5, 500);
-
+  float desired_height = 15;
   float sonar_height = 0;
+  float sonar_speed = 0;
+
   float last_sonar_height = 0;
   unsigned long time_at_last_sonar_height = 0;
-  float sonar_speed = 0;
+
+  unsigned int sample_num = 0;
+  unsigned int sample_id = 0;
+
+  NewPing sonar(6,5, 500);
 
   IMUsensor mpu;                  //objet pour récupérer les valeurs de l'IMU et calculer une orientation absolue
   PID pid;                        //objet qui gère le calcul des directives pour les moteurs
   MotorManager motors;            //objet qui gère le calcul des valeurs par moteur, et s'occupe de les contrôler
 
   motors.startMotors();
-  
+
 	if(wait_serial)
   {
     while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
-	}  
+	}
 
   mpu.calibrateSensors();
   mpu.actualizeSensorData();
   mpu.calcAbsoluteOrientation(0.99);
-
   pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), 0, 0, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 15);
 
 
 
   delay(1000);
+
 
   while(true)
   {
@@ -89,7 +108,7 @@ void loop()
 
 
     mpu.actualizeSensorData();
-    mpu.calcAbsoluteOrientation(0.97);
+    mpu.calcAbsoluteOrientation(0.99);
 
 
     if( !digitalRead(9) == LOW )
@@ -97,35 +116,14 @@ void loop()
 			if(motor_started)
 			{
 				pid.reset();
-//				landing = 1;
-			}
-
-			if(landing)
-			{
-				
-				pid.calcCommand(mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height , sonar_speed, mpu.getAngularSpeedX(), mpu.getAngularSpeedY(), mpu.getAngularSpeedZ(), 0, 0, 0, 0);
-			  float command_h = pid.getCommandH();
-			  command_h = (command_h > 15) ? 15 : command_h;
-			  command_h = (command_h < -30) ? -30 : command_h;
-
-			  motors.command( pid.getCommandX(), pid.getCommandY(), pid.getCommandZ(), command_h ); //commande des moteurs avec les valeurs données par le PID
-				
-			} 
-		
-			
-//				pid.reset();
-//				motors.setOff();
-			
+			  motors.setOff();
+      }
 			if(!safe_mode)
         motor_started = 0;
+
     }
     else
     {
-			if(landing)
-			{
-				pid.reset();
-				motors.setOff();
-			}
       if(!motor_started)
       {
         motor_started = 1;
@@ -141,48 +139,59 @@ void loop()
 
       motors.command( pid.getCommandX(), pid.getCommandY(), pid.getCommandZ(), command_h ); //commande des moteurs avec les valeurs données par le PID
 
+      if( sample_id % 10 == 0 )
+      {
+        samples[sample_num] = { mpu.getX(), mpu.getY(), mpu.getZ(), pid.getCommandX(), pid.getCommandY(), pid.getCommandZ() };
+        sample_num++;
+      }
+      sample_id++;
     }
 
-    if ( safe_mode && motor_started  && millis() - millis_at_motor_start > MOTOR_MAX_DURATION )
+
+    if ( ( safe_mode && motor_started  && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || ( radio_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ) )
     {
       motors.setOff();
 			if( millis() - millis_at_last_print > PRINT_PERIOD)
 			{
 				Serial.println("stop bc of millis > MOTOR_MAX_DURATION");
 			}
+      if(radio_debug)
+      {
+        for(unsigned int i = 0 ; i < sample_num ; i++)
+        {
+          Sample actual_sample = samples[i];
+          Serial.print("sending packet n°"); Serial.print(i); Serial.print("\tof size "); Serial.print(sizeof(actual_sample)); Serial.print("\twith in it : ");
+          Serial.print(actual_sample.x, 2); Serial.print("\t");
+          Serial.print(actual_sample.y, 2); Serial.print("\t");
+          Serial.print(actual_sample.z, 2); Serial.print("\t");
+          Serial.print(actual_sample.command_x, 2); Serial.print("\t");
+          Serial.print(actual_sample.command_y, 2); Serial.print("\t");
+          Serial.print(actual_sample.command_z, 2); Serial.print("\n");
+          vw_send((byte*)&actual_sample, 24);
+          vw_wait_tx(); // On attend la fin de la transmission
+        }
+      }
+
+      while(true);
+      //end on the flight
 		}
+
+
 
     if(millis() - millis_at_last_print > PRINT_PERIOD)
     {
-  /*  if(radio_debug)
-      {
-        uint8_t message[7];
-        message[0] = motors.getMotorValue(0);
-        message[1] = motors.getMotorValue(1);
-        message[2] = motors.getMotorValue(2);
-        message[3] = motors.getMotorValue(3);
-        message[4] = mpu.getX() + 127;
-        message[5] = mpu.getY() + 127;
-        message[6] = millis() / 1000;
-
-        vw_send((uint8_t *)message, 7);
-
-      }
-*/    if(serial_debug)
+      if(serial_debug)
       {
         Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
         Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
         Serial.print( motors.getMotorValue(2) );  Serial.print("\t");
         Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
         Serial.print( mpu.getX(), 2 ); Serial.print("\t");
-        Serial.print( mpu.getY(), 2 ); Serial.print("\t|\t");
+        Serial.print( mpu.getY(), 2 ); Serial.print("\t");
         Serial.print( mpu.getZ(), 2 ); Serial.print("\t|\t");
         Serial.print( sonar_height, 2 ); Serial.print("\t");
-        Serial.print( sonar_speed, 2 ); Serial.print("\t | \t");
-        Serial.print( pid.getCommandX() ); Serial.print("\t");
-        Serial.print( pid.getDerivateCorrectionX( mpu.getAngularSpeedX() ) ); Serial.print("\t");
-        Serial.print( pid.getProportionalCorrectionX (0, mpu.getX()) ); Serial.print("\t|\t");
-        Serial.print( max_time_loop ); Serial.print("\n");
+        Serial.print( max_time_loop ); Serial.print("\t");
+        Serial.print( sample_num ); Serial.print("\n");
       }
       millis_at_last_print = millis();
     }
