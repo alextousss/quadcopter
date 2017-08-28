@@ -1,8 +1,8 @@
 #include "PID.hpp"
 
-#define gain_P 2
+#define gain_P 0.8
 #define gain_I 0.000
-#define gain_D 1
+#define gain_D 0.05
 #define weight_H 0.7
 
 #define GAIN_COMMAND_X 1
@@ -90,14 +90,14 @@ void PID::calcCommand( float orientation_x,
  	else
 		last_height = height;
 
-	if( order_h - height > 5) 	order_h = height + 5; //here we just
+	if( order_h - height > 5) 	order_h = height + 5;
 	if( order_h - height < -5)	order_h = height - 5;
 
 
-  float error_x = orientation_x - order_x;
-  float error_y = orientation_y - order_y;
-  float error_z = orientation_z - order_z;
-  float error_h = height - order_h;
+  float error_x = order_x - orientation_x;
+  float error_y = order_y - orientation_y;
+  float error_z = order_z - orientation_z;
+  float error_h = order_h - height;
 
   sum_error_x += error_x * time_loop;
   sum_error_y += error_y * time_loop;
@@ -106,22 +106,21 @@ void PID::calcCommand( float orientation_x,
 
 
   float p_x = error_x * gain_p_x;
-  float p_y = error_y  * gain_p_y;
-  float p_z = error_z  * gain_p_z;
-  float p_h = error_h  * gain_p_h;
+  float p_y = error_y * gain_p_y;
+  float p_z = error_z * gain_p_z;
+  float p_h = error_h * gain_p_h;
 
 
-  float i_x = (sum_error_x * -1) * gain_i_x;
-  float i_y = (sum_error_y * -1) * gain_i_y;
-  float i_z = (sum_error_z * -1) * gain_i_z;
-  float i_h = (sum_error_h * -1) * gain_i_h;
+  float i_x = (sum_error_x ) * gain_i_x;
+  float i_y = (sum_error_y ) * gain_i_y;
+  float i_z = (sum_error_z ) * gain_i_z;
+  float i_h = (sum_error_h ) * gain_i_h;
 
 
-  float d_x = ( error_x - last_error_x ) / time_loop      * gain_d_x;
-  float d_y = ( error_x - last_error_x ) / time_loop      * gain_d_y;
-  float d_z = ( error_x - last_error_x ) / time_loop * -1 * gain_d_z;
-  float d_h = ( error_x - last_error_x ) / time_loop * -1 * gain_d_h;
-
+  float d_x = ( error_x - last_error_x ) / time_loop  * gain_d_x;
+  float d_y = ( error_y - last_error_y ) / time_loop  * gain_d_y;
+  float d_z = ( error_z - last_error_z ) / time_loop  * gain_d_z;
+  float d_h = ( error_h - last_error_h ) / time_loop  * gain_d_h;
 
 
   command_x = (p_x + i_x + d_x);
@@ -137,6 +136,7 @@ void PID::calcCommand( float orientation_x,
 
 	if(DEBUG)
 	{
+    Serial.print( orientation_x , 2); Serial.print("\t");
 		Serial.print( p_x , 2);  Serial.print("\t");
 		Serial.print( i_x , 2);  Serial.print("\t");
 		Serial.print( d_x , 2);  Serial.print("\t");
