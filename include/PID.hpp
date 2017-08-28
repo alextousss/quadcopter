@@ -35,7 +35,7 @@ public:
   float getSumErrorH() { return sum_error_h ; }
 
 	float getProportionalCorrectionX(float order_x, float orientation_x) { return (( order_x - orientation_x ) * gain_p_x) ;  }
-	float getDerivateCorrectionX(float angular_speed_x) { return (angular_speed_x * gain_d_x) ; }
+	float getDerivateCorrectionX(float order_x, float orientation_x) { return ( ( order_x - orientation_x ) - last_error_x ) / time_loop  * gain_d_x ; }
 
 private:
 	float last_height;
