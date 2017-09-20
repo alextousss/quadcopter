@@ -50,7 +50,7 @@ void MotorManager::command(float command_x, float command_y, float command_z, fl
 
   for(unsigned int i = 0 ; i < 4 ; i++)
   {
-    motor_value[i] += (160-55) - 33;
+    motor_value[i] += (160-55) - 40;
     motor_value[i] = (motor_value[i] <= 55) ? 55 : motor_value[i]; //just to make sure that the motor values are always between 55 (stop of the motors) and 160 (max value)
     motor_value[i] = (motor_value[i] > 120) ? 120 : motor_value[i];
   }
@@ -59,7 +59,7 @@ void MotorManager::command(float command_x, float command_y, float command_z, fl
   {
     if(! stop_motor)
     {
-      motor[i].write(motor_value[i]);
+      motor[i].writeMicroseconds(map(motor_value[i],0,180,1000,2000));
     }
     else
     {
