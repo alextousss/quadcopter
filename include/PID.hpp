@@ -4,6 +4,8 @@
 #include <Arduino.h>
 #include <Wire.h>
 
+#define DERIVATE_BUFFER_SIZE 10
+
 class PID
 {
 public:
@@ -34,8 +36,6 @@ public:
   float getSumErrorZ() { return sum_error_z ; }
   float getSumErrorH() { return sum_error_h ; }
 
-	float getProportionalCorrectionX(float order_x, float orientation_x) { return (( order_x - orientation_x ) * gain_p_x) ;  }
-	float getDerivateCorrectionX(float order_x, float orientation_x) { return ( ( order_x - orientation_x ) - last_error_x ) / time_loop  * gain_d_x ; }
 
 private:
 	float last_height;
@@ -72,13 +72,14 @@ private:
   float sum_error_z;
   float sum_error_h;
 
-  float last_error_x;
-  float last_error_y;
-  float last_error_z;
-  float last_error_h;
+	float last_errors_x[DERIVATE_BUFFER_SIZE];
+	float last_errors_y[DERIVATE_BUFFER_SIZE];
+	float last_errors_z[DERIVATE_BUFFER_SIZE];
+	float last_errors_h[DERIVATE_BUFFER_SIZE];
 
   unsigned long last_pid_calc;
   float time_loop;
+	unsigned int serial_index;
 };
 
 #endif
