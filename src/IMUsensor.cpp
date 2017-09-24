@@ -1,5 +1,6 @@
 #include "IMUsensor.hpp"
 
+
 #define MPU_addr 0x68
 #define FS_SEL 131
 
@@ -38,23 +39,8 @@ IMUsensor::IMUsensor()
 
   raw_temperature = 0;
 
-  Wire.begin();
-  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
-  Wire.write(0x6B);                                                    //Send the requested starting register
-  Wire.write(0x00);                                                    //Set the requested starting register
-  Wire.endTransmission();                                              //End the transmission
-  //Configure the accelerometer (+/-8g)
-  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
-  Wire.write(0x1C);                                                    //Send the requested starting register
-  Wire.write(0x10);                                                    //Set the requested starting register
-  Wire.endTransmission();                                              //End the transmission
-  //Configure the gyro (500dps full scale)
-  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
-  Wire.write(0x1B);                                                    //Send the requested starting register
-  Wire.write(0x08);                                                    //Set the requested starting register
-  Wire.endTransmission();                                              //End the transmission
-}
 
+}
 bool IMUsensor::calcAbsoluteOrientation( float complementary_rate )
 {
 
@@ -120,10 +106,28 @@ bool IMUsensor::actualizeSensorData()
 
 bool IMUsensor::calibrateSensors()
 {
+  Wire.begin();
+  Wire.beginTransmission(MPU_addr);
+  Wire.write(0x6B);
+  Wire.write(0);
+  Wire.endTransmission(true);
+  //Configure the accelerometer (+/-8g)
+  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
+  Wire.write(0x1C);                                                    //Send the requested starting register
+  Wire.write(0x10);                                                    //Set the requested starting register
+  Wire.endTransmission();                                              //End the transmission
+  //Configure the gyro (500dps full scale)
+  Wire.beginTransmission(0x68);                                        //Start communicating with the MPU-6050
+  Wire.write(0x1B);                                                    //Send the requested starting register
+  Wire.write(0x08);                                                    //Set the requested starting register
+  Wire.endTransmission();
+
   #define NUM_SAMPLES 800
 
-  for (int i = 0 ; i < NUM_SAMPLES ; i++) //assumes that the quadcopter has no motio during the calibration
+  for (int i = 0 ; i < NUM_SAMPLES ; i++) //assumes that the quadcopter has no motion during the calibration
   {
+    if( i % 100 < 50 )  digitalWrite(5, HIGH); else digitalWrite(5, LOW);
+
 		if(i > 150)
 		{
 		  actualizeSensorData();

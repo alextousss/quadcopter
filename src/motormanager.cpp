@@ -7,10 +7,10 @@ MotorManager::MotorManager()
     motor_value[i] = 0;
   }
 
-  motor[0].attach(23);
-  motor[1].attach(22);
-  motor[2].attach(20);
-  motor[3].attach(21);
+  motor[0].attach(6);//23
+  motor[1].attach(7);//22
+  motor[2].attach(9);//20
+  motor[3].attach(8);//21
 
   gain_x = 1;
   gain_y = 1;

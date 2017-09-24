@@ -12,70 +12,45 @@ public:
   PID();
   void reset();
 
-  void calcCommand( float orientation_x,
-                  float orientation_y,
-                  float orientation_z,
-                  float height,
-                  float vertical_speed,
-                  float angular_speed_x,
-                  float angular_speed_y,
-                  float angular_speed_z,
-                  float order_x,
-                  float order_y,
-                  float order_z,
-                  float order_h );
+  struct vec3f
+  {
+    float x;
+    float y;
+    float z;
+  };
 
-  float getCommandX() { return command_x ; }
-  float getCommandY() { return command_y ; }
-  float getCommandZ() { return command_z ; }
-  float getCommandH() { return command_h ; }
+  struct vec4f
+  {
+    float x;
+    float y;
+    float z;
+    float h;
+  };
 
+  struct gain3f
+  {
+    float p;
+    float i;
+    float d;
+  };
 
-  float getSumErrorX() { return sum_error_x ; }
-  float getSumErrorY() { return sum_error_y ; }
-  float getSumErrorZ() { return sum_error_z ; }
-  float getSumErrorH() { return sum_error_h ; }
+  void calcCommand( vec4f position, vec4f consigne );
+  vec4f getCommand() { return command ; }
+
 
 
 private:
 	float last_height;
-  float gain_p_x; //gain for the proportional correction
-  float gain_p_y;
-  float gain_p_z;
-  float gain_p_h;
+  gain3f gain_x;
+  gain3f gain_y;
+  gain3f gain_z;
+  gain3f gain_h;
 
+  vec4f command;
+  vec4f gain_command;
+  vec4f sum_error;
+	vec4f last_errors[DERIVATE_BUFFER_SIZE];
 
-  float gain_i_x; //gain for the integral correction
-  float gain_i_y;
-  float gain_i_z;
-  float gain_i_h;
-
-
-  float gain_d_x; //gain for the derivation correction
-  float gain_d_y;
-  float gain_d_z;
-  float gain_d_h;
-
-
-  float command_x; //final command
-  float command_y;
-  float command_z;
-  float command_h;
-
-  float gain_command_x; //gain for the final command
-  float gain_command_y;
-  float gain_command_z;
-  float gain_command_h;
-
-  float sum_error_x; //sum of the errors, used for the integral correction
-  float sum_error_y;
-  float sum_error_z;
-  float sum_error_h;
-
-	float last_errors_x[DERIVATE_BUFFER_SIZE];
-	float last_errors_y[DERIVATE_BUFFER_SIZE];
-	float last_errors_z[DERIVATE_BUFFER_SIZE];
-	float last_errors_h[DERIVATE_BUFFER_SIZE];
 
   unsigned long last_pid_calc;
   float time_loop;
