@@ -59,8 +59,9 @@ void MotorManager::command(float command_x, float command_y, float command_z, fl
   {
     if(! stop_motor)
     {
-      motor[i].writeMicroseconds(map(motor_value[i],0,180,1000,2000));
-    }
+//      motor[i].writeMicroseconds(map(motor_value[i],0,180,1000,2000));
+			motor[i].write(motor_value[i]);
+		}
     else
     {
       motor_value[i] = 0;
@@ -78,6 +79,10 @@ void MotorManager::startMotors()    //needed to "arm" the ESC, without that, the
     motor[i].write(10);
   }
   delay(100);
+  for(int i = 0; i <= 3 ; i++)
+  {
+    motor[i].write(55);
+  }
 
   stop_motor = 0;
 }
