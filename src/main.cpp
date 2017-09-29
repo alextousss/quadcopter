@@ -8,9 +8,8 @@
 #include "PID.hpp"
 #include "motormanager.hpp"
 
-#define PERCENTAGE_RADIO_SENT 10
-#define PRINT_PERIOD 30
-#define MOTOR_MAX_DURATION 4000
+#define PRINT_PERIOD 10
+#define MOTOR_MAX_DURATION 3000
 #define MAX_SAMPLE_BUFFER_SIZE  1000
 
 
@@ -69,6 +68,7 @@ void setup()
 
 
 //  pinMode(9, INPUT_PULLUP); //on configure les entrées pour pouvoir utiliser le bouton
+  motors.startMotors();
   mpu.calibrateSensors();
 
   Serial.print("Initialisation de la carte SD ...");
@@ -84,12 +84,10 @@ void setup()
 
   Serial.println("Carte initialisée.");
 
-  motors.startMotors();
 
   motor_started = 1;
   millis_at_motor_start = millis();
 
-  motors.setOn();
   digitalWrite(5, LOW);
 }
 
@@ -126,7 +124,7 @@ void loop()
 
   motors.command( pid.getCommand().x, pid.getCommand().y, pid.getCommand().z, pid.getCommand().h ); //commande des moteurs avec les valeurs données par le PID
 
-  if( sample_id % 10 == 0 )
+  if( sample_id % PRINT_PERIOD == 0 )
   {
     samples[sample_num] = { mpu.getX(), mpu.getY(), mpu.getZ(), pid.getCommand().x, pid.getCommand().y, pid.getCommand().z };
     sample_num++;
