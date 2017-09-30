@@ -9,8 +9,10 @@
 #include "motormanager.hpp"
 
 #define PRINT_PERIOD 10
-#define MOTOR_MAX_DURATION 3000
+#define MOTOR_MAX_DURATION 4000
+#define PAUSE_BETWEEN_TESTS 20000
 #define MAX_SAMPLE_BUFFER_SIZE  1000
+
 
 
 struct Sample
@@ -29,14 +31,14 @@ bool safe_mode = 1;             //si activé, les moteurs se coupent automatique
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
 bool serial_debug = 1;
 bool radio_debug = 0;
-bool sd_debug = 1;
+bool sd_debug = 0;
 
-bool motor_started = 0;
 
 unsigned long millis_at_motor_start = 0;
 unsigned long millis_at_last_print = 0;
 unsigned long millis_at_last_loop = 0;
 unsigned long millis_at_last_max_time_loop = 0;
+unsigned long millis_at_last_test_end = 0;
 unsigned long time_loop = 0;
 unsigned long max_time_loop = 0;
 
@@ -49,6 +51,7 @@ unsigned long time_at_last_sonar_height = 0;
 
 unsigned int sample_num = 0;
 unsigned int sample_id = 0;
+unsigned int test_id = 0;
 
 //NewPing sonar(6,5, 500);
 
@@ -71,22 +74,20 @@ void setup()
   motors.startMotors();
   mpu.calibrateSensors();
 
-  Serial.print("Initialisation de la carte SD ...");
 
-  //On regarde si la carte est présente
-  if (!SD.begin(chip_select))
+  if(sd_debug)
   {
-    while(true)
+    Serial.print("Initialisation de la carte SD ...");
+
+    //On regarde si la carte est présente
+    if (!SD.begin(chip_select))
     {
       Serial.println("Pas possible d'initialiser la carte SD");
+      while(true);
     }
+
+    Serial.println("Carte initialisée.");
   }
-
-  Serial.println("Carte initialisée.");
-
-
-  motor_started = 1;
-  millis_at_motor_start = millis();
 
   digitalWrite(5, LOW);
 }
@@ -94,109 +95,139 @@ void setup()
 
 void loop()
 {
+  sample_num = 0;
+  sample_id = 0;
+  millis_at_motor_start = millis();
+  motors.setOn();
 
-  time_loop = millis() - millis_at_last_loop;
-  millis_at_last_loop = millis();
-
-  if( time_loop > max_time_loop  || millis() - millis_at_last_max_time_loop > 1000) //calcul du loop ayant prit le plus de temps dans la dernière seconde
+  if( test_id > 20 )
   {
-    max_time_loop = time_loop;
-    millis_at_last_max_time_loop = millis();
+    while(true);
   }
 
+  Serial.println(test_id);
+  digitalWrite(5,LOW);
+  pid.reset();
+  pid.setGainX( { test_id / 10.0f, 0.0f, 0.0f } );
+  pid.setGainY( { test_id / 10.0f, 0.0f, 0.0f } );
 
-  if( millis() - time_at_last_sonar_height > 50 ) //ici on utilise le capteur ultrason pour connaître l'altitude du quadricoptere toutes les 50ms
+  while(!( safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ))
   {
-    last_sonar_height = sonar_height;
+    time_loop = millis() - millis_at_last_loop;
+    millis_at_last_loop = millis();
 
-    sonar_height = 0;//sonar.ping_cm(80);
-    sonar_speed = ( sonar_height - last_sonar_height ) / ( ( millis() - time_at_last_sonar_height ) / 400.0f );
-    time_at_last_sonar_height = millis();
-  }
-
-
-  mpu.actualizeSensorData(); //on actualise les capteurs et on calcule l'orientation
-  mpu.calcAbsoluteOrientation(0.99);
-
-
-  //calcul du PID avec les valeurs de l'IMU
-  pid.calcCommand( { mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height } , { 0, 0, 0, desired_height } );
-
-  motors.command( pid.getCommand().x, pid.getCommand().y, pid.getCommand().z, pid.getCommand().h ); //commande des moteurs avec les valeurs données par le PID
-
-  if( sample_id % PRINT_PERIOD == 0 )
-  {
-    samples[sample_num] = { mpu.getX(), mpu.getY(), mpu.getZ(), pid.getCommand().x, pid.getCommand().y, pid.getCommand().z };
-    sample_num++;
-  }
-
-  sample_id++;
-
-
-  if ( ( safe_mode && motor_started  && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ) )
-  {
-    motors.setOff();
-  	if( millis() - millis_at_last_print > PRINT_PERIOD)
-  	{
-  		Serial.println("stop bc of millis > MOTOR_MAX_DURATION");
-  	}
-
-    if(sd_debug)
+    if( time_loop > max_time_loop  || millis() - millis_at_last_max_time_loop > 1000) //calcul du loop ayant prit le plus de temps dans la dernière seconde
     {
-      unsigned int log_count = 0;
-      while ( SD.exists( (String("log") + String(log_count)).c_str() ) )
-        log_count++;
-      File data_file = SD.open((String("log") + String(log_count)).c_str(), FILE_WRITE);
-      Serial.println((String("log") + String(log_count)).c_str());
-      if(data_file)
+      max_time_loop = time_loop;
+      millis_at_last_max_time_loop = millis();
+    }
+
+
+    if( millis() - time_at_last_sonar_height > 50 ) //ici on utilise le capteur ultrason pour connaître l'altitude du quadricoptere toutes les 50ms
+    {
+      last_sonar_height = sonar_height;
+
+      sonar_height = 0;//sonar.ping_cm(80);
+      sonar_speed = ( sonar_height - last_sonar_height ) / ( ( millis() - time_at_last_sonar_height ) / 400.0f );
+      time_at_last_sonar_height = millis();
+    }
+
+
+    mpu.actualizeSensorData(); //on actualise les capteurs et on calcule l'orientation
+    mpu.calcAbsoluteOrientation(0.99);
+
+
+    //calcul du PID avec les valeurs de l'IMU
+    pid.calcCommand( { mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height } , { 0, 0, 0, desired_height } );
+
+    motors.command( pid.getCommand().x, pid.getCommand().y, pid.getCommand().z, pid.getCommand().h ); //commande des moteurs avec les valeurs données par le PID
+
+    if( sample_id % PRINT_PERIOD == 0 )
+    {
+      samples[sample_num] = { mpu.getX(), mpu.getY(), mpu.getZ(), pid.getCommand().x, pid.getCommand().y, pid.getCommand().z };
+      sample_num++;
+    }
+
+    sample_id++;
+
+    if(millis() - millis_at_last_print > PRINT_PERIOD)
+    {
+      if(serial_debug)
       {
-        digitalWrite(5, HIGH);
-        Serial.println("open achieved");
-        String stream = "";
-        for( unsigned int i = 0 ; i < sample_num ; i++ )
-        {
-          stream += String(i);
-          stream += String("\t");
-          stream += String(samples[i].x);
-          stream += String("\t");
-          stream += String(samples[i].y);
-          stream += String("\t");
-          stream += String(samples[i].z);
-          stream += String("\t");
-          stream += String(samples[i].command_x);
-          stream += String("\t");
-          stream += String(samples[i].command_y);
-          stream += String("\t");
-          stream += String(samples[i].command_z);
-          stream += String("\n");
-        }
-        data_file.print(stream);
-        delay(100);
-        data_file.close();
-        Serial.println(stream);
+        Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
+        Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
+        Serial.print( motors.getMotorValue(2) );  Serial.print("\t");
+        Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
+        Serial.print( mpu.getX(), 2 ); Serial.print("\t");
+        Serial.print( mpu.getY(), 2 ); Serial.print("\t");
+        Serial.print( mpu.getZ(), 2 ); Serial.print("\t|\t");
+        Serial.print( pid.getCommand().x, 2 ); Serial.print("\t");
+        Serial.print( pid.getCommand().y, 2 ); Serial.print("\t");
+        Serial.print( pid.getCommand().z, 2 ); Serial.print("\t");
+        Serial.print( pid.getCommand().h, 2 ); Serial.print("\t|\t");
+        Serial.print( sonar_height, 2 ); Serial.print("\t");
+        Serial.print( max_time_loop ); Serial.print("\t");
+        Serial.print( sample_num ); Serial.print("\n");
       }
-      while(true);
+      millis_at_last_print = millis();
     }
   }
 
+  Serial.println("Stop of the test !");
+  Serial.println("Next test starts in 20 seconds !");
 
+  motors.setOff();
 
-  if(millis() - millis_at_last_print > PRINT_PERIOD)
+  millis_at_last_test_end = millis();
+
+  if(sd_debug)
   {
-    if(serial_debug)
+    unsigned int log_count = 0;
+    while ( SD.exists( (String("log") + String(log_count)).c_str() ) )
+      log_count++;
+    File data_file = SD.open((String("log") + String(log_count)).c_str(), FILE_WRITE);
+    Serial.println((String("log") + String(log_count)).c_str());
+    if(data_file)
     {
-      Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
-      Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
-      Serial.print( motors.getMotorValue(2) );  Serial.print("\t");
-      Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
-      Serial.print( mpu.getX(), 2 ); Serial.print("\t");
-      Serial.print( mpu.getY(), 2 ); Serial.print("\t");
-      Serial.print( mpu.getZ(), 2 ); Serial.print("\t|\t");
-      Serial.print( sonar_height, 2 ); Serial.print("\t");
-      Serial.print( max_time_loop ); Serial.print("\t");
-      Serial.print( sample_num ); Serial.print("\n");
+      digitalWrite(5, HIGH);
+      Serial.println("open achieved");
+      String stream = "----TEST n°" + String(test_id) + "----\n";
+      for( unsigned int i = 0 ; i < sample_num ; i++ )
+      {
+        stream += String(i);
+        stream += String("\t");
+        stream += String(samples[i].x);
+        stream += String("\t");
+        stream += String(samples[i].y);
+        stream += String("\t");
+        stream += String(samples[i].z);
+        stream += String("\t");
+        stream += String(samples[i].command_x);
+        stream += String("\t");
+        stream += String(samples[i].command_y);
+        stream += String("\t");
+        stream += String(samples[i].command_z);
+        stream += String("\n");
+      }
+      data_file.print(stream);
+      delay(100);
+      data_file.close();
+      Serial.println(stream);
     }
-    millis_at_last_print = millis();
   }
+  while( millis() - millis_at_last_test_end < PAUSE_BETWEEN_TESTS )
+  {
+    unsigned int blink_period = ( PAUSE_BETWEEN_TESTS - ( millis() - millis_at_last_test_end ) )  / 100;
+    Serial.println(blink_period);
+    digitalWrite(5,LOW);
+    delay(blink_period);
+    digitalWrite(5,HIGH);
+    delay(blink_period);
+  }
+
+  test_id++;
+
+
+
 
 }
