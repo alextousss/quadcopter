@@ -3,7 +3,7 @@
 #define gain_P 0.8
 #define gain_I 0.05
 #define gain_D 0.005
-#define weight_H 0.7
+#define weight_H 0
 
 #define GAIN_COMMAND_X 1
 #define GAIN_COMMAND_Y 1
@@ -86,12 +86,12 @@ void PID::calcCommand( vec4f position, vec4f consigne )
 {
   time_loop = millis() / 1000.0 - last_pid_calc / 1000.0;
   last_pid_calc = millis();
-
+/*
 	if( position.h == 0 ) //if the ultrasonic sensors returns shit, we use the last good measurement he gave us
 		position.h = last_height;
  	else
 		last_height = position.h;
-
+*/
 	if( consigne.h - position.h > 5) 	consigne.h = position.h + 5;
 	if( consigne.h - position.h < -5)	consigne.h = position.h - 5;
 
@@ -128,10 +128,10 @@ void PID::calcCommand( vec4f position, vec4f consigne )
 		average_last_error_h += last_errors[i].h;
 	}
 
-	average_last_error_x /= DERIVATE_BUFFER_SIZE + 1;
-	average_last_error_y /= DERIVATE_BUFFER_SIZE + 1;
-	average_last_error_z /= DERIVATE_BUFFER_SIZE + 1;
-	average_last_error_h /= DERIVATE_BUFFER_SIZE + 1;
+	average_last_error_x /= DERIVATE_BUFFER_SIZE ;
+	average_last_error_y /= DERIVATE_BUFFER_SIZE ;
+	average_last_error_z /= DERIVATE_BUFFER_SIZE ;
+	average_last_error_h /= DERIVATE_BUFFER_SIZE ;
 
 	sum_error.x += error_x * time_loop;
   sum_error.y += error_y * time_loop;
@@ -166,16 +166,16 @@ void PID::calcCommand( vec4f position, vec4f consigne )
 
 	if(DEBUG)
 	{
-		Serial.print(serial_index); Serial.print("\t");
-    Serial.print( average_last_error_x , 2); Serial.print("\t");
-    Serial.print( error_x , 2); Serial.print("\n");
-		/*
+
+  //  Serial.print( average_last_error_h , 2); Serial.print("\t");
+  //  Serial.print( error_h , 2); Serial.print("\n");
+
     Serial.print( position.x , 2); Serial.print("\t");
-		Serial.print( p_x , 2);  Serial.print("\t");
-		Serial.print( i_x , 2);  Serial.print("\t");
-		Serial.print( d_x , 2);  Serial.print("\t");
-		Serial.print( command_x , 2);  Serial.print("\n");
-		*/
+		Serial.print( p_h , 2);  Serial.print("\t");
+		Serial.print( i_h , 2);  Serial.print("\t");
+		Serial.print( d_h , 2);  Serial.print("\t");
+		Serial.print( command.h , 2);  Serial.print("\n");
+
 	}
 
 	serial_index++;
