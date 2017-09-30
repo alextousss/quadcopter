@@ -36,6 +36,10 @@ public:
 
   void calcCommand( vec4f position, vec4f consigne );
   vec4f getCommand() { return command ; }
+  void setGainX( gain3f new_gain ) { this->gain_x = new_gain; }
+  void setGainY( gain3f new_gain ) { this->gain_y = new_gain; }
+  void setGainZ( gain3f new_gain ) { this->gain_z = new_gain; }
+  void setGainH( gain3f new_gain ) { this->gain_h = new_gain; }
 
 
 
