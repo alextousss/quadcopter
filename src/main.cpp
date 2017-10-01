@@ -8,10 +8,11 @@
 #include "PID.hpp"
 #include "motormanager.hpp"
 
-#define PRINT_PERIOD 10
-#define MOTOR_MAX_DURATION 4000
+#define PRINT_PERIOD 20
+#define MOTOR_MAX_DURATION 10000
 #define PAUSE_BETWEEN_TESTS 20000
 #define MAX_SAMPLE_BUFFER_SIZE  1000
+#define SAMPLE_PERIOD 10
 
 
 
@@ -95,23 +96,26 @@ void setup()
 
 void loop()
 {
+  if( test_id > 20 )
+  {
+    while(true);
+  }
+  
+  digitalWrite(5,LOW);
+
   sample_num = 0;
   sample_id = 0;
   millis_at_motor_start = millis();
   motors.setOn();
 
-  if( test_id > 20 )
-  {
-    while(true);
-  }
 
-  Serial.println(test_id);
-  digitalWrite(5,LOW);
+  gain3f XYgains = {}
+
   pid.reset();
   pid.setGainX( { test_id / 10.0f, 0.0f, 0.0f } );
   pid.setGainY( { test_id / 10.0f, 0.0f, 0.0f } );
 
-  while(!( safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ))
+  while( !( ( safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ) ) )
   {
     time_loop = millis() - millis_at_last_loop;
     millis_at_last_loop = millis();
@@ -142,7 +146,7 @@ void loop()
 
     motors.command( pid.getCommand().x, pid.getCommand().y, pid.getCommand().z, pid.getCommand().h ); //commande des moteurs avec les valeurs données par le PID
 
-    if( sample_id % PRINT_PERIOD == 0 )
+    if( sample_id % SAMPLE_PERIOD == 0 )
     {
       samples[sample_num] = { mpu.getX(), mpu.getY(), mpu.getZ(), pid.getCommand().x, pid.getCommand().y, pid.getCommand().z };
       sample_num++;
@@ -166,8 +170,7 @@ void loop()
         Serial.print( pid.getCommand().z, 2 ); Serial.print("\t");
         Serial.print( pid.getCommand().h, 2 ); Serial.print("\t|\t");
         Serial.print( sonar_height, 2 ); Serial.print("\t");
-        Serial.print( max_time_loop ); Serial.print("\t");
-        Serial.print( sample_num ); Serial.print("\n");
+        Serial.print( max_time_loop ); Serial.print("\n");
       }
       millis_at_last_print = millis();
     }
@@ -183,10 +186,14 @@ void loop()
   if(sd_debug)
   {
     unsigned int log_count = 0;
+
+    if(SD.exists())
+
     while ( SD.exists( (String("log") + String(log_count)).c_str() ) )
       log_count++;
     File data_file = SD.open((String("log") + String(log_count)).c_str(), FILE_WRITE);
     Serial.println((String("log") + String(log_count)).c_str());
+
     if(data_file)
     {
       digitalWrite(5, HIGH);

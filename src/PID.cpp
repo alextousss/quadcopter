@@ -3,12 +3,12 @@
 #define gain_P 0.8
 #define gain_I 0.05
 #define gain_D 0.005
-#define weight_H 0
+#define weight_H 1
 
 #define GAIN_COMMAND_X 1
 #define GAIN_COMMAND_Y 1
 #define GAIN_COMMAND_Z 0
-#define GAIN_COMMAND_H 1
+#define GAIN_COMMAND_H 0
 
 #define DEBUG 0
 
