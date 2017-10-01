@@ -9,7 +9,7 @@
 #include "motormanager.hpp"
 
 #define PRINT_PERIOD 10
-#define MOTOR_MAX_DURATION 4000
+#define MOTOR_MAX_DURATION 400000000
 #define PAUSE_BETWEEN_TESTS 20000
 #define MAX_SAMPLE_BUFFER_SIZE  1000
 
@@ -108,8 +108,9 @@ void loop()
   Serial.println(test_id);
   digitalWrite(5,LOW);
   pid.reset();
-  pid.setGainX( { test_id / 10.0f, 0.0f, 0.0f } );
-  pid.setGainY( { test_id / 10.0f, 0.0f, 0.0f } );
+
+	pid.setGainX( { 0.3f, 0.0f, 0.001f * test_id } );
+	pid.setGainY( {  0.3f, 0.0f, 0.001f * test_id } );
 
   while(!( safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ))
   {
@@ -183,10 +184,10 @@ void loop()
   if(sd_debug)
   {
     unsigned int log_count = 0;
-    while ( SD.exists( (String("log") + String(log_count)).c_str() ) )
+    while ( SD.exists( (String("logPID") + String(log_count)).c_str() ) )
       log_count++;
-    File data_file = SD.open((String("log") + String(log_count)).c_str(), FILE_WRITE);
-    Serial.println((String("log") + String(log_count)).c_str());
+    File data_file = SD.open((String("logPID") + String(log_count)).c_str(), FILE_WRITE);
+    Serial.println((String("logPID") + String(log_count)).c_str());
     if(data_file)
     {
       digitalWrite(5, HIGH);
@@ -217,7 +218,7 @@ void loop()
   }
   while( millis() - millis_at_last_test_end < PAUSE_BETWEEN_TESTS )
   {
-    unsigned int blink_period = ( PAUSE_BETWEEN_TESTS - ( millis() - millis_at_last_test_end ) )  / 100;
+		unsigned int blink_period = ( PAUSE_BETWEEN_TESTS - ( millis() - millis_at_last_test_end ) )  / 100;
     Serial.println(blink_period);
     digitalWrite(5,LOW);
     delay(blink_period);
