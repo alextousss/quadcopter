@@ -100,7 +100,7 @@ void loop()
   {
     while(true);
   }
-  
+
   digitalWrite(5,LOW);
 
   sample_num = 0;
@@ -112,8 +112,9 @@ void loop()
   gain3f XYgains = {}
 
   pid.reset();
-  pid.setGainX( { test_id / 10.0f, 0.0f, 0.0f } );
-  pid.setGainY( { test_id / 10.0f, 0.0f, 0.0f } );
+
+	pid.setGainX( { 0.3f, 0.0f, 0.001f * test_id } );
+	pid.setGainY( {  0.3f, 0.0f, 0.001f * test_id } );
 
   while( !( ( safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ) ) )
   {
@@ -186,13 +187,10 @@ void loop()
   if(sd_debug)
   {
     unsigned int log_count = 0;
-
-    if(SD.exists())
-
-    while ( SD.exists( (String("log") + String(log_count)).c_str() ) )
+    while ( SD.exists( (String("logPID") + String(log_count)).c_str() ) )
       log_count++;
-    File data_file = SD.open((String("log") + String(log_count)).c_str(), FILE_WRITE);
-    Serial.println((String("log") + String(log_count)).c_str());
+    File data_file = SD.open((String("logPID") + String(log_count)).c_str(), FILE_WRITE);
+    Serial.println((String("logPID") + String(log_count)).c_str());
 
     if(data_file)
     {
@@ -224,7 +222,7 @@ void loop()
   }
   while( millis() - millis_at_last_test_end < PAUSE_BETWEEN_TESTS )
   {
-    unsigned int blink_period = ( PAUSE_BETWEEN_TESTS - ( millis() - millis_at_last_test_end ) )  / 100;
+		unsigned int blink_period = ( PAUSE_BETWEEN_TESTS - ( millis() - millis_at_last_test_end ) )  / 100;
     Serial.println(blink_period);
     digitalWrite(5,LOW);
     delay(blink_period);
