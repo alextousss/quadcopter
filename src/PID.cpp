@@ -17,6 +17,10 @@
 PID::PID()
 {
 	last_height = 0;
+	
+	proportional = { 0, 0, 0, 0 };
+	derivate = { 0, 0, 0, 0 };
+	integral = { 0, 0, 0, 0 };
 
   command.x = 0;
   command.y = 0;
@@ -139,28 +143,28 @@ void PID::calcCommand( vec4f position, vec4f consigne )
   sum_error.h += error_h * time_loop;
 
 
-  float p_x = error_x * gain_x.p;
-  float p_y = error_y * gain_y.p;
-  float p_z = error_z * gain_z.p;
-  float p_h = error_h * gain_h.p;
+  proportional.x = error_x * gain_x.p;
+  proportional.y = error_y * gain_y.p;
+  proportional.z = error_z * gain_z.p;
+  proportional.h = error_h * gain_h.p;
 
 
-  float i_x = (sum_error.x ) * gain_x.i;
-  float i_y = (sum_error.y ) * gain_y.i;
-  float i_z = (sum_error.z ) * gain_z.i;
-  float i_h = (sum_error.h ) * gain_h.i;
+	integral.x = (sum_error.x ) * gain_x.i;
+  integral.y = (sum_error.y ) * gain_y.i;
+	integral.z = (sum_error.z ) * gain_z.i;
+  integral.h = (sum_error.h ) * gain_h.i;
 
 
-  float d_x = ( error_x - average_last_error_x ) / time_loop  * gain_x.d;
-  float d_y = ( error_y - average_last_error_y ) / time_loop  * gain_y.d;
-  float d_z = ( error_z - average_last_error_z ) / time_loop  * gain_z.d;
-  float d_h = ( error_h - average_last_error_h ) / time_loop  * gain_h.d;
+  derivate.x = ( error_x - average_last_error_x ) / time_loop  * gain_x.d;
+  derivate.y = ( error_y - average_last_error_y ) / time_loop  * gain_y.d;
+  derivate.z = ( error_z - average_last_error_z ) / time_loop  * gain_z.d;
+  derivate.h = ( error_h - average_last_error_h ) / time_loop  * gain_h.d;
 
 
-  command.x = (p_x + i_x + d_x);
-  command.y = (p_y + i_y + d_y);
-  command.z = (p_z + i_z + d_z);
-  command.h = ((p_h + i_h + d_h) * weight_H);
+  command.x = (proportional.x + integral.x + derivate.x);
+  command.y = (proportional.y + integral.y + derivate.y);
+  command.z = (proportional.z + integral.z + derivate.z);
+  command.h = ((proportional.h + integral.h + derivate.h) * weight_H);
 
 
 
@@ -171,9 +175,9 @@ void PID::calcCommand( vec4f position, vec4f consigne )
   //  Serial.print( error_h , 2); Serial.print("\n");
 
     Serial.print( position.x , 2); Serial.print("\t");
-		Serial.print( p_h , 2);  Serial.print("\t");
-		Serial.print( i_h , 2);  Serial.print("\t");
-		Serial.print( d_h , 2);  Serial.print("\t");
+		Serial.print( proportional.h , 2);  Serial.print("\t");
+		Serial.print( integral.h , 2);  Serial.print("\t");
+		Serial.print( derivate.h , 2);  Serial.print("\t");
 		Serial.print( command.h , 2);  Serial.print("\n");
 
 	}

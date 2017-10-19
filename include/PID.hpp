@@ -4,7 +4,7 @@
 #include <Arduino.h>
 #include <Wire.h>
 
-#define DERIVATE_BUFFER_SIZE 10
+#define DERIVATE_BUFFER_SIZE 3
 
 class PID
 {
@@ -34,9 +34,15 @@ public:
     float d;
   };
 
-  void calcCommand( vec4f position, vec4f consigne );
-  vec4f getCommand() { return command ; }
-  void setGainX( gain3f new_gain ) { this->gain_x = new_gain; }
+  
+	void calcCommand( vec4f position, vec4f consigne );
+  
+	vec4f getCommand() { return command ; }
+	vec4f getProportionalCorrection() { return proportional ; }
+	vec4f getDerivateCorrection() { return derivate ; }
+	vec4f getIntegralCorrection() { return integral ; }
+	
+	void setGainX( gain3f new_gain ) { this->gain_x = new_gain; }
   void setGainY( gain3f new_gain ) { this->gain_y = new_gain; }
   void setGainZ( gain3f new_gain ) { this->gain_z = new_gain; }
   void setGainH( gain3f new_gain ) { this->gain_h = new_gain; }
@@ -50,6 +56,9 @@ private:
   gain3f gain_z;
   gain3f gain_h;
 
+	vec4f proportional;
+	vec4f derivate;
+	vec4f integral;
   vec4f command;
   vec4f gain_command;
   vec4f sum_error;

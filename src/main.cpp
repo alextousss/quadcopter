@@ -9,9 +9,9 @@
 #include "motormanager.hpp"
 
 #define PRINT_PERIOD 20
-#define MOTOR_MAX_DURATION 10000
-#define PAUSE_BETWEEN_TESTS 20000
-#define MAX_SAMPLE_BUFFER_SIZE  1000
+#define MOTOR_MAX_DURATION 20000
+#define PAUSE_BETWEEN_TESTS 10000
+#define MAX_SAMPLE_BUFFER_SIZE  2000
 #define SAMPLE_PERIOD 10
 
 
@@ -19,11 +19,10 @@
 struct Sample
 {
   float x;
-  float y;
-  float z;
-  float command_x;
-  float command_y;
-  float command_z;
+	float command_x;
+	float proportional_x;
+	float integral_x;	
+	float derivate_x;
 };
 
 Sample samples[MAX_SAMPLE_BUFFER_SIZE];
@@ -53,6 +52,7 @@ unsigned long time_at_last_sonar_height = 0;
 unsigned int sample_num = 0;
 unsigned int sample_id = 0;
 unsigned int test_id = 0;
+unsigned int folder_count = 0;
 
 //NewPing sonar(6,5, 500);
 
@@ -88,8 +88,12 @@ void setup()
     }
 
     Serial.println("Carte initialisée.");
-  }
+  
 
+		while ( SD.exists( (String("test") + String(folder_count)).c_str() ) )
+			folder_count++;
+		SD.mkdir ( (String("test") + String(folder_count) ).c_str() );
+	}
   digitalWrite(5, LOW);
 }
 
@@ -109,12 +113,11 @@ void loop()
   motors.setOn();
 
 
-  gain3f XYgains = {}
 
   pid.reset();
 
-	pid.setGainX( { 0.3f, 0.0f, 0.001f * test_id } );
-	pid.setGainY( {  0.3f, 0.0f, 0.001f * test_id } );
+	pid.setGainX( { 0.4f , 0.0f, 0.00f + test_id / 1000  } );
+	pid.setGainY( { 0.4f , 0.0f, 0.00f + test_id / 1000  } );
 
   while( !( ( safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ) ) )
   {
@@ -149,7 +152,7 @@ void loop()
 
     if( sample_id % SAMPLE_PERIOD == 0 )
     {
-      samples[sample_num] = { mpu.getX(), mpu.getY(), mpu.getZ(), pid.getCommand().x, pid.getCommand().y, pid.getCommand().z };
+      samples[sample_num] = { mpu.getX(), pid.getCommand().x, pid.getProportionalCorrection().x, pid.getIntegralCorrection().x, pid.getDerivateCorrection().x };
       sample_num++;
     }
 
@@ -167,9 +170,9 @@ void loop()
         Serial.print( mpu.getY(), 2 ); Serial.print("\t");
         Serial.print( mpu.getZ(), 2 ); Serial.print("\t|\t");
         Serial.print( pid.getCommand().x, 2 ); Serial.print("\t");
-        Serial.print( pid.getCommand().y, 2 ); Serial.print("\t");
-        Serial.print( pid.getCommand().z, 2 ); Serial.print("\t");
-        Serial.print( pid.getCommand().h, 2 ); Serial.print("\t|\t");
+        Serial.print( pid.getProportionalCorrection().x, 2 ); Serial.print("\t");
+        Serial.print( pid.getIntegralCorrection().x, 2 ); Serial.print("\t");
+        Serial.print( pid.getDerivateCorrection().x, 2 ); Serial.print("\t|\t");
         Serial.print( sonar_height, 2 ); Serial.print("\t");
         Serial.print( max_time_loop ); Serial.print("\n");
       }
@@ -186,11 +189,11 @@ void loop()
 
   if(sd_debug)
   {
-    unsigned int log_count = 0;
-    while ( SD.exists( (String("logPID") + String(log_count)).c_str() ) )
-      log_count++;
-    File data_file = SD.open((String("logPID") + String(log_count)).c_str(), FILE_WRITE);
-    Serial.println((String("logPID") + String(log_count)).c_str());
+
+		unsigned int file_count = 0;
+		while ( SD.exists( (String("test") + String(folder_count) + String("/") + String("log") + String(file_count)).c_str() ) )
+      file_count++;
+		File data_file = SD.open((String("test") + String(folder_count) + String("/") + String("log") + String(file_count) ).c_str(), FILE_WRITE);
 
     if(data_file)
     {
@@ -203,15 +206,13 @@ void loop()
         stream += String("\t");
         stream += String(samples[i].x);
         stream += String("\t");
-        stream += String(samples[i].y);
-        stream += String("\t");
-        stream += String(samples[i].z);
-        stream += String("\t");
         stream += String(samples[i].command_x);
         stream += String("\t");
-        stream += String(samples[i].command_y);
+        stream += String(samples[i].proportional_x);
         stream += String("\t");
-        stream += String(samples[i].command_z);
+        stream += String(samples[i].integral_x);
+        stream += String("\t");
+        stream += String(samples[i].derivate_x);
         stream += String("\n");
       }
       data_file.print(stream);
