@@ -3,12 +3,11 @@
 #define gain_P 0.8
 #define gain_I 0.05
 #define gain_D 0.005
-#define weight_H 1
 
 #define GAIN_COMMAND_X 1
 #define GAIN_COMMAND_Y 1
 #define GAIN_COMMAND_Z 0
-#define GAIN_COMMAND_H 0
+#define GAIN_COMMAND_H 1
 
 #define DEBUG 0
 
@@ -17,7 +16,7 @@
 PID::PID()
 {
 	last_height = 0;
-	
+
 	proportional = { 0, 0, 0, 0 };
 	derivate = { 0, 0, 0, 0 };
 	integral = { 0, 0, 0, 0 };
@@ -161,10 +160,10 @@ void PID::calcCommand( vec4f position, vec4f consigne )
   derivate.h = ( error_h - average_last_error_h ) / time_loop  * gain_h.d;
 
 
-  command.x = (proportional.x + integral.x + derivate.x);
-  command.y = (proportional.y + integral.y + derivate.y);
-  command.z = (proportional.z + integral.z + derivate.z);
-  command.h = ((proportional.h + integral.h + derivate.h) * weight_H);
+  command.x = (proportional.x + integral.x + derivate.x)  * GAIN_COMMAND_X;
+  command.y = (proportional.y + integral.y + derivate.y)  * GAIN_COMMAND_Y;
+  command.z = (proportional.z + integral.z + derivate.z)  * GAIN_COMMAND_Z;
+  command.h = ((proportional.h + integral.h + derivate.h) * GAIN_COMMAND_H);
 
 
 

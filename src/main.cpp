@@ -9,8 +9,8 @@
 #include "motormanager.hpp"
 
 #define PRINT_PERIOD 20
-#define MOTOR_MAX_DURATION 20000
-#define PAUSE_BETWEEN_TESTS 10000
+#define MOTOR_MAX_DURATION 10000
+#define PAUSE_BETWEEN_TESTS 7000
 #define MAX_SAMPLE_BUFFER_SIZE  2000
 #define SAMPLE_PERIOD 10
 
@@ -21,7 +21,7 @@ struct Sample
   float x;
 	float command_x;
 	float proportional_x;
-	float integral_x;	
+	float integral_x;
 	float derivate_x;
 };
 
@@ -87,8 +87,8 @@ void setup()
       while(true);
     }
 
-    Serial.println("Carte initialisée.");
-  
+    Serial.println("Carte SD initialisée.");
+
 
 		while ( SD.exists( (String("test") + String(folder_count)).c_str() ) )
 			folder_count++;
@@ -109,15 +109,15 @@ void loop()
 
   sample_num = 0;
   sample_id = 0;
+
   millis_at_motor_start = millis();
   motors.setOn();
-
-
+  mpu.resetOrientation();
 
   pid.reset();
 
-	pid.setGainX( { 0.4f , 0.0f, 0.00f + test_id / 1000  } );
-	pid.setGainY( { 0.4f , 0.0f, 0.00f + test_id / 1000  } );
+	pid.setGainX( { test_id / 20.0f , 0.0f, 0.0f /*test_id * 0.01f*/ } );
+	pid.setGainY( { test_id / 20.0f , 0.0f, 0.0f /*test_id * 0.01f*/ } );
 
   while( !( ( safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ) ) )
   {
@@ -142,7 +142,7 @@ void loop()
 
 
     mpu.actualizeSensorData(); //on actualise les capteurs et on calcule l'orientation
-    mpu.calcAbsoluteOrientation(0.99);
+    mpu.calcAbsoluteOrientation(0.995);
 
 
     //calcul du PID avec les valeurs de l'IMU
