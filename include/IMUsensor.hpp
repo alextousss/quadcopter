@@ -9,6 +9,7 @@ class IMUsensor
 {
 public:
   IMUsensor();
+  void resetOrientation() { gyro_angle_set = false ;}
 
   bool calibrateSensors();
   bool actualizeSensorData();
@@ -25,6 +26,7 @@ public:
   float getX() { return orientation_x - 0.5 ; }
   float getY() { return orientation_y + 1	; }
   float getZ() { return orientation_z ; }
+
 
 
 
