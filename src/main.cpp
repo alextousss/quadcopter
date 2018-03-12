@@ -4,8 +4,9 @@
 #include <NewPing.h>
 #include <SD.h>
 
+#include "datastructs.hpp"
 #include "IMUsensor.hpp"
-#include "PID.hpp"
+#include "stabilitycontrol.hpp"
 #include "motormanager.hpp"
 
 #define PRINT_PERIOD 20
@@ -26,6 +27,7 @@ struct Sample
 };
 
 Sample samples[MAX_SAMPLE_BUFFER_SIZE];
+
 
 bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
 bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
@@ -54,13 +56,12 @@ unsigned int sample_id = 0;
 unsigned int test_id = 0;
 unsigned int folder_count = 0;
 
-//NewPing sonar(6,5, 500);
 
 const unsigned short chip_select = 10;
 
-PID pid;                        //objet qui gère le calcul des directives pour les moteurs
-MotorManager motors;            //objet qui gère le calcul des valeurs par moteur, et s'occupe de les contrôler
-IMUsensor mpu;                  //objet pour récupérer les valeurs de l'IMU et calculer une orientation absolue
+StabilityControl controller;        // objet qui gère le calcul des directives pour les moteurs
+MotorManager motors;            // objet qui gère le calcul des valeurs par moteur, et s'occupe de les contrôler
+IMUsensor mpu;                  // objet pour récupérer les valeurs de l'IMU et calculer une orientation absolue
 
 void setup()
 {
@@ -100,26 +101,17 @@ void setup()
 
 void loop()
 {
-  if( test_id > 20 )
-  {
-    while(true);
-  }
-
   digitalWrite(5,LOW);
-
-  sample_num = 0;
-  sample_id = 0;
 
   millis_at_motor_start = millis();
   motors.setOn();
   mpu.resetOrientation();
 
-  pid.reset();
+  controller.reset();
+	controller.setGainX( {20.0f, 0.0f, 0.0f} );
+	controller.setGainY( {20.0f, 0.0f, 0.0f} );
 
-	pid.setGainX( { test_id / 20.0f , 0.0f, 0.0f /*test_id * 0.01f*/ } );
-	pid.setGainY( { test_id / 20.0f , 0.0f, 0.0f /*test_id * 0.01f*/ } );
-
-  while( !( ( safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION ) || (sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE ) ) )
+  while( !(safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION) || !(sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE) )
   {
     time_loop = millis() - millis_at_last_loop;
     millis_at_last_loop = millis();
@@ -146,13 +138,14 @@ void loop()
 
 
     //calcul du PID avec les valeurs de l'IMU
-    pid.calcCommand( { mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height } , { 0, 0, 0, desired_height } );
+    vec4f command = controller.getCommand({ mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height } , { 0, 0, 0, desired_height }, time_loop);
 
-    motors.command( pid.getCommand().x, pid.getCommand().y, pid.getCommand().z, pid.getCommand().h ); //commande des moteurs avec les valeurs données par le PID
+
+    motors.command( command.x, command.y, command.z, command.h ); //commande des moteurs avec les valeurs données par le PID
 
     if( sample_id % SAMPLE_PERIOD == 0 )
     {
-      samples[sample_num] = { mpu.getX(), pid.getCommand().x, pid.getProportionalCorrection().x, pid.getIntegralCorrection().x, pid.getDerivateCorrection().x };
+      samples[sample_num] = { mpu.getX(), command.x, controller.getProportionalCorrection().x, controller.getIntegralCorrection().x, controller.getDerivateCorrection().x };
       sample_num++;
     }
 
@@ -169,10 +162,10 @@ void loop()
         Serial.print( mpu.getX(), 2 ); Serial.print("\t");
         Serial.print( mpu.getY(), 2 ); Serial.print("\t");
         Serial.print( mpu.getZ(), 2 ); Serial.print("\t|\t");
-        Serial.print( pid.getCommand().x, 2 ); Serial.print("\t");
-        Serial.print( pid.getProportionalCorrection().x, 2 ); Serial.print("\t");
-        Serial.print( pid.getIntegralCorrection().x, 2 ); Serial.print("\t");
-        Serial.print( pid.getDerivateCorrection().x, 2 ); Serial.print("\t|\t");
+        Serial.print( command.x, 2 ); Serial.print("\t");
+        Serial.print( controller.getProportionalCorrection().x, 2 ); Serial.print("\t");
+        Serial.print( controller.getIntegralCorrection().x, 2 ); Serial.print("\t");
+        Serial.print( controller.getDerivateCorrection().x, 2 ); Serial.print("\t|\t");
         Serial.print( sonar_height, 2 ); Serial.print("\t");
         Serial.print( max_time_loop ); Serial.print("\n");
       }
@@ -221,19 +214,5 @@ void loop()
       Serial.println(stream);
     }
   }
-  while( millis() - millis_at_last_test_end < PAUSE_BETWEEN_TESTS )
-  {
-		unsigned int blink_period = ( PAUSE_BETWEEN_TESTS - ( millis() - millis_at_last_test_end ) )  / 100;
-    Serial.println(blink_period);
-    digitalWrite(5,LOW);
-    delay(blink_period);
-    digitalWrite(5,HIGH);
-    delay(blink_period);
-  }
-
-  test_id++;
-
-
-
 
 }

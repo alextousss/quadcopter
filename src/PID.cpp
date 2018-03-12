@@ -11,7 +11,42 @@
 
 #define DEBUG 0
 
+PID::PID()
+{
+	proportional = 0;
+  derivative   = 0;
+  integral     = 0;
+  error_sum    = 0;
+  last_error   = 0;
+	gains        = {1,1,1};
+}
 
+PID::PID(gain3f gains)
+{
+	proportional = 0;
+  derivative   = 0;
+  integral     = 0;
+  error_sum    = 0;
+  last_error   = 0;
+	this->gains  = gains;
+}
+
+float PID::getCorrection(float instruction, float situation, uint16_t delta_time)
+{
+// with delta_time in milliseconds, we get it in seconds by dividing it by 1000
+	float error = instruction - situation;
+	error_sum += error * ( delta_time / 1000.0f );
+
+	proportional = error * gains.p;
+	integral = error_sum * gains.i;
+	derivative = (error - last_error) / ( delta_time / 1000.0f) * gains.d;
+
+	last_error = error;
+
+	return proportional + integral + derivative;
+}
+
+/*
 
 PID::PID()
 {
@@ -89,12 +124,12 @@ void PID::calcCommand( vec4f position, vec4f consigne )
 {
   time_loop = millis() / 1000.0 - last_pid_calc / 1000.0;
   last_pid_calc = millis();
-/*
-	if( position.h == 0 ) //if the ultrasonic sensors returns shit, we use the last good measurement he gave us
-		position.h = last_height;
- 	else
-		last_height = position.h;
-*/
+
+//	if( position.h == 0 ) //if the ultrasonic sensors returns shit, we use the last good measurement he gave us
+//		position.h = last_height;
+// 	else
+//		last_height = position.h;
+
 	if( consigne.h - position.h > 5) 	consigne.h = position.h + 5;
 	if( consigne.h - position.h < -5)	consigne.h = position.h - 5;
 
@@ -184,3 +219,4 @@ void PID::calcCommand( vec4f position, vec4f consigne )
 	serial_index++;
 
 }
+*/
