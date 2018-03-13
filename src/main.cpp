@@ -12,7 +12,7 @@
 #define PRINT_PERIOD 20
 #define MOTOR_MAX_DURATION 10000
 #define PAUSE_BETWEEN_TESTS 7000
-#define MAX_SAMPLE_BUFFER_SIZE  2000
+#define MAX_SAMPLE_BUFFER_SIZE  100
 #define SAMPLE_PERIOD 10
 
 
@@ -44,7 +44,7 @@ unsigned long millis_at_last_test_end = 0;
 unsigned long time_loop = 0;
 unsigned long max_time_loop = 0;
 
-float desired_height = 70;
+float desired_height = 0;
 float sonar_height = 0;
 float sonar_speed = 0;
 
@@ -91,10 +91,10 @@ void setup()
     Serial.println("Carte SD initialisée.");
 
 
-		while ( SD.exists( (String("test") + String(folder_count)).c_str() ) )
-			folder_count++;
-		SD.mkdir ( (String("test") + String(folder_count) ).c_str() );
-	}
+    while ( SD.exists( (String("test") + String(folder_count)).c_str() ) )
+      folder_count++;
+    SD.mkdir ( (String("test") + String(folder_count) ).c_str() );
+  }
   digitalWrite(5, LOW);
 }
 
@@ -183,10 +183,10 @@ void loop()
   if(sd_debug)
   {
 
-		unsigned int file_count = 0;
-		while ( SD.exists( (String("test") + String(folder_count) + String("/") + String("log") + String(file_count)).c_str() ) )
+    unsigned int file_count = 0;
+    while (SD.exists((String("test") + String(folder_count) + String("/") + String("log") + String(file_count)).c_str()))
       file_count++;
-		File data_file = SD.open((String("test") + String(folder_count) + String("/") + String("log") + String(file_count) ).c_str(), FILE_WRITE);
+    File data_file = SD.open((String("test") + String(folder_count) + String("/") + String("log") + String(file_count) ).c_str(), FILE_WRITE);
 
     if(data_file)
     {
