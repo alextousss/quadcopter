@@ -12,8 +12,8 @@
 #define PRINT_PERIOD 20
 #define MOTOR_MAX_DURATION 10000
 #define PAUSE_BETWEEN_TESTS 7000
-#define MAX_SAMPLE_BUFFER_SIZE  100
-#define SAMPLE_PERIOD 10
+#define MAX_SAMPLE_BUFFER_SIZE  10
+#define SAMPLE_PERIOD 20
 
 
 
@@ -108,8 +108,8 @@ void loop()
   mpu.resetOrientation();
 
   controller.reset();
-	controller.setGainX( {20.0f, 0.0f, 0.0f} );
-	controller.setGainY( {20.0f, 0.0f, 0.0f} );
+	controller.setGainX( {2.0f, 0.2f, 0.5f} );
+	controller.setGainY( {2.0f, 0.2f, 0.5f} );
 
   while( !(safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION) || !(sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE) )
   {
@@ -143,7 +143,7 @@ void loop()
 
     motors.command( command.x, command.y, command.z, command.h ); //commande des moteurs avec les valeurs données par le PID
 
-    if( sample_id % SAMPLE_PERIOD == 0 )
+    if( sd_debug && sample_id % SAMPLE_PERIOD == 0 )
     {
       samples[sample_num] = { mpu.getX(), command.x, controller.getProportionalCorrection().x, controller.getIntegralCorrection().x, controller.getDerivateCorrection().x };
       sample_num++;
