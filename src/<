@@ -40,26 +40,17 @@ void MotorManager::setOff()
 
 void MotorManager::command(float command_x, float command_y, float command_z, float command_h)
 {
-    float commands[3] = {command_x, command_y, command_z};
 
-    motor_value[0] = (1 * commands[1]) + (1 * commands[0]) + ( 1 * commands[2]) + command_h;
-    motor_value[1] = ( -1 * commands[1]) + (1 * commands[0]) + (-1 * commands[2]) + command_h;
-    motor_value[2] = ( -1 * commands[1]) + (-1 * commands[0]) + ( 1 * commands[2]) + command_h;
-    motor_value[3] = (1 * commands[1]) + ( -1 * commands[0]) + (-1 * commands[2]) + command_h;
-/*
     motor_value[0] = gain_y * ( 1 * command_y) + gain_x * (-1 * command_x) + (-1 * command_z) + gain_h * command_h;
     motor_value[1] = gain_y * ( 1 * command_y) + gain_x * ( 1 * command_x) + ( 1 * command_z) + gain_h * command_h;
     motor_value[2] = gain_y * (-1 * command_y) + gain_x * ( 1 * command_x) + (-1 * command_z) + gain_h * command_h;
     motor_value[3] = gain_y * (-1 * command_y) + gain_x * (-1 * command_x) + ( 1 * command_z) + gain_h * command_h;
-*/
 
     for(int i = 0; i < 4 ; i++)
     {
-        motor_value[i] = min(motor_value[i], 0.7f);
-        motor_value[i] = max(motor_value[i], 0);
         if(! stop_motor)
         {
-            motor[i].writeMicroseconds(1000 + motor_value[i]*1000); // moteurs calibrés pour être à zéro pour 1000 et au max à 2000
+            motor[i].write(writeMicroseconds(1000 + motor_value[i]*1000); // moteurs calibrés pour être à zéro pour 1000 et au max à 2000
         }
         else
         {

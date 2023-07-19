@@ -1,5 +1,12 @@
 #ifndef DATASTRUCTS
 #define DATASTRUCTS
+#include <Arduino.h>
+
+struct vec3int16 {
+    int16_t x;
+    int16_t y;
+    int16_t z;
+};
 
 struct gain3f
 {

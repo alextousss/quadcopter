@@ -9,210 +9,179 @@
 #include "stabilitycontrol.hpp"
 #include "motormanager.hpp"
 
-#define PRINT_PERIOD 20
-#define MOTOR_MAX_DURATION 10000
-#define PAUSE_BETWEEN_TESTS 7000
-#define MAX_SAMPLE_BUFFER_SIZE  10
-#define SAMPLE_PERIOD 20
+
+#define NUM_STATES 500
+#define PIN_CS 10
+
+typedef struct State {
+    vec3f ori;
+    vec3f rot;
+    vec3f rot_filtered;
+    vec3f cmd;
+    vec3f p;
+    vec3f d;
+    //float height;
+    unsigned long t; // microseconds
+} State;
+
+#define K_P_zero 3.0f
+#define K_P 0.5f
+#define K_D 0.01f
+void compute_commands(State *states, int idx){
+    if(idx == 0) {
+        states[idx].cmd = {0.0f, 0.0f, 0.0f};
+        return;
+    }
+    float dt = 1.0f/(states[idx].t-states[idx-1].t);
+    vec3f ncsigne;
+    ncsigne.x = K_P_zero*-states[idx].ori.x;
+    ncsigne.y = K_P_zero*-states[idx].ori.y;
+
+    vec3f ocsigne;
+    ocsigne.x = K_P_zero*-states[idx-1].ori.x;
+    ocsigne.y = K_P_zero*-states[idx-1].ori.y;
+    states[idx].p.x = K_P*(ncsigne.x-states[idx].rot_filtered.x);
+    states[idx].p.y =   K_P*(ncsigne.y-states[idx].rot_filtered.y);
+    states[idx].d.x = K_D*((ncsigne.x-states[idx].rot_filtered.x)-(ocsigne.x-states[idx-1].rot_filtered.x))/dt;
+    states[idx].d.y =+ K_D*((ncsigne.y-states[idx].rot_filtered.y)-(ocsigne.y-states[idx-1].rot_filtered.y))/dt;
+
+    states[idx].cmd.x =  states[idx].p.x + states[idx].d.x;
+    states[idx].cmd.y =  states[idx].p.y + states[idx].d.y;
+    states[idx].cmd.z = 0.0f;
+}
 
 
 
-struct Sample
-{
-  float x;
-	float command_x;
-	float proportional_x;
-	float integral_x;
-	float derivate_x;
-};
 
-Sample samples[MAX_SAMPLE_BUFFER_SIZE];
-
-
-bool safe_mode = 1;             //si activé, les moteurs se coupent automatiquement après 3 secondes d'allumage
-bool wait_serial = 0;                // et ce afin d'éviter une perte de contrôle du quadricoptère sur le banc de test
+bool wait_serial = 1;
 bool serial_debug = 1;
 bool radio_debug = 0;
 bool sd_debug = 0;
 
 
-unsigned long millis_at_motor_start = 0;
-unsigned long millis_at_last_print = 0;
-unsigned long millis_at_last_loop = 0;
-unsigned long millis_at_last_max_time_loop = 0;
-unsigned long millis_at_last_test_end = 0;
-unsigned long time_loop = 0;
-unsigned long max_time_loop = 0;
+State states[NUM_STATES];
 
 float desired_height = 0;
-float sonar_height = 0;
-float sonar_speed = 0;
 
-float last_sonar_height = 0;
-unsigned long time_at_last_sonar_height = 0;
-
-unsigned int sample_num = 0;
-unsigned int sample_id = 0;
-unsigned int test_id = 0;
-unsigned int folder_count = 0;
+unsigned long sonar_timer = 0;
 
 
-const unsigned short chip_select = 10;
 
-StabilityControl controller;        // objet qui gère le calcul des directives pour les moteurs
-MotorManager motors;            // objet qui gère le calcul des valeurs par moteur, et s'occupe de les contrôler
-IMUsensor mpu;                  // objet pour récupérer les valeurs de l'IMU et calculer une orientation absolue
+MotorManager motors;
+NewPing sonar(6,5, 500);
+IMUsensor mpu;
 
 void setup()
 {
-  pinMode(5, OUTPUT);
+    sonar_timer = millis();
+    pinMode(5, OUTPUT);
 
-  Serial.begin(115200);
-  if(wait_serial)
-    while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
-
-
-//  pinMode(9, INPUT_PULLUP); //on configure les entrées pour pouvoir utiliser le bouton
-  motors.startMotors();
-  mpu.calibrateSensors();
+    Serial.begin(115200);
+    if(wait_serial)
+        while(!Serial); //on attends que le port série soit ouvert pour commencer les calculs
 
 
-  if(sd_debug)
-  {
-    Serial.print("Initialisation de la carte SD ...");
+    //  pinMode(9, INPUT_PULLUP); //on configure les entrées pour pouvoir utiliser le bouton
+    motors.startMotors();
+    mpu.calibrateSensors();
 
-    //On regarde si la carte est présente
-    if (!SD.begin(chip_select))
-    {
-      Serial.println("Pas possible d'initialiser la carte SD");
-      while(true);
+
+    if(sd_debug) {
+        Serial.print("Initialisation de la carte SD ...");
+        //On regarde si la carte est présente
+        if (!SD.begin(PIN_CS))  {
+            Serial.println("Pas possible d'initialiser la carte SD");
+            while(true);
+        }
+        Serial.println("Carte SD initialisée.");
     }
-
-    Serial.println("Carte SD initialisée.");
-
-
-    while ( SD.exists( (String("test") + String(folder_count)).c_str() ) )
-      folder_count++;
-    SD.mkdir ( (String("test") + String(folder_count) ).c_str() );
-  }
-  digitalWrite(5, LOW);
+    digitalWrite(5, LOW);
 }
 
 
 void loop()
 {
-  digitalWrite(5,LOW);
+    digitalWrite(5,LOW);
+    motors.setOn();
+    mpu.resetOrientation();
+    unsigned long millis_at_start = millis();
+    for(unsigned int zero = 0; zero < 3 ; zero++) {
+        if(zero > 0) {
+            states[0] = states[NUM_STATES-1];
+        }
+        for(unsigned int idx = 1; idx < NUM_STATES ; idx++) {
+            while(micros()-states[idx-1].t<2000);
+            states[idx].t = micros();
+            mpu.actualizeSensorData(); //on actualise les capteurs et on calcule l'orientation
+            mpu.calcAbsoluteOrientation(0.995);
+            states[idx].ori = mpu.getOrientation();
+            states[idx].rot = mpu.getRotation();
 
-  millis_at_motor_start = millis();
-  motors.setOn();
-  mpu.resetOrientation();
+            float dt = 1.0f/(states[idx].t-states[idx-1].t);
+            const float beta = exp(-2.0f*3.14f*25*dt); // filtrage passe-bas 200hz
+            states[idx].rot_filtered.x = beta*states[idx-1].rot_filtered.x + (1.0f-beta)*states[idx].rot.x;
 
-  controller.reset();
-	controller.setGainX( {2.0f, 0.2f, 0.5f} );
-	controller.setGainY( {2.0f, 0.2f, 0.5f} );
+            states[idx].rot_filtered.y = beta*states[idx-1].rot_filtered.y + (1.0f-beta)*states[idx].rot.y;
 
-  while( !(safe_mode && millis() - millis_at_motor_start > MOTOR_MAX_DURATION) || !(sd_debug && sample_num >= MAX_SAMPLE_BUFFER_SIZE) )
-  {
-    time_loop = millis() - millis_at_last_loop;
-    millis_at_last_loop = millis();
-
-    if( time_loop > max_time_loop  || millis() - millis_at_last_max_time_loop > 1000) //calcul du loop ayant prit le plus de temps dans la dernière seconde
-    {
-      max_time_loop = time_loop;
-      millis_at_last_max_time_loop = millis();
+            compute_commands(states, idx);
+            motors.command( states[idx].cmd.x, states[idx].cmd.y, states[idx].cmd.z, 0.3f ); //commande des moteurs avec les valeurs données par le PID
+            vec4f motor_value = motors.getMotorValues();
+            //if(idx%1==0) {
+            Serial.print(states[idx].ori.x, 4) + Serial.print("\t");
+            Serial.print(states[idx].ori.y, 4) + Serial.print("\t");
+            Serial.print(states[idx].rot.x, 4) + Serial.print("\t");
+            Serial.print(states[idx].rot_filtered.x, 4) + Serial.print("\t");
+            Serial.print(states[idx].cmd.x, 4) + Serial.print("\t");
+            Serial.print(states[idx].p.x, 4) + Serial.print("\t");
+            Serial.print(states[idx].d.x, 4) + Serial.print("\t");
+            Serial.print(states[idx].cmd.y, 4) + Serial.print("\t");
+            Serial.print(states[idx].p.y, 4) + Serial.print("\t");
+            Serial.print(states[idx].d.y, 4) + Serial.print("\t");
+            Serial.println("");
+            //}
+        }
     }
+    Serial.println(millis()-millis_at_start);
+    motors.setOff();
+/*
+    String stream = "t (micros)\tori_x\trot_x\tcmd_x\tm_0\tm_1\tm_2\tm_3\n";
+    for( unsigned int i = 0 ; i < NUM_STATES; i++ ) {
+        stream += String(states[i].t) + String("\t");
+        stream += String(states[i].ori.x) + String("\t");
+        stream += String(states[i].rot.x) + String("\t");
+        stream += String(states[i].cmd.x) + String("\t");
+        stream += String(states[i].motor_value.x) + String("\t");
+        stream += String(states[i].motor_value.y) + String("\t");
+        stream += String(states[i].motor_value.z) + String("\t");
+        stream += String(states[i].motor_value.h) + String("\t");
 
-
-    if( millis() - time_at_last_sonar_height > 50 ) //ici on utilise le capteur ultrason pour connaître l'altitude du quadricoptere toutes les 50ms
-    {
-      last_sonar_height = sonar_height;
-
-      sonar_height = 0;//sonar.ping_cm(80);
-      sonar_speed = ( sonar_height - last_sonar_height ) / ( ( millis() - time_at_last_sonar_height ) / 400.0f );
-      time_at_last_sonar_height = millis();
-    }
-
-
-    mpu.actualizeSensorData(); //on actualise les capteurs et on calcule l'orientation
-    mpu.calcAbsoluteOrientation(0.995);
-
-
-    //calcul du PID avec les valeurs de l'IMU
-    vec4f command = controller.getCommand({ mpu.getX(), mpu.getY(), mpu.getZ(), sonar_height } , { 0, 0, 0, desired_height }, time_loop);
-
-
-    motors.command( command.x, command.y, command.z, command.h ); //commande des moteurs avec les valeurs données par le PID
-
-    if( sd_debug && sample_id % SAMPLE_PERIOD == 0 )
-    {
-      samples[sample_num] = { mpu.getX(), command.x, controller.getProportionalCorrection().x, controller.getIntegralCorrection().x, controller.getDerivateCorrection().x };
-      sample_num++;
-    }
-
-    sample_id++;
-
-    if(millis() - millis_at_last_print > PRINT_PERIOD)
-    {
-      if(serial_debug)
-      {
-        Serial.print( motors.getMotorValue(0) );  Serial.print("\t");
-        Serial.print( motors.getMotorValue(1) );  Serial.print("\t");
-        Serial.print( motors.getMotorValue(2) );  Serial.print("\t");
-        Serial.print( motors.getMotorValue(3) ); Serial.print("\t|\t");
-        Serial.print( mpu.getX(), 2 ); Serial.print("\t");
-        Serial.print( mpu.getY(), 2 ); Serial.print("\t");
-        Serial.print( mpu.getZ(), 2 ); Serial.print("\t|\t");
-        Serial.print( command.x, 2 ); Serial.print("\t");
-        Serial.print( controller.getProportionalCorrection().x, 2 ); Serial.print("\t");
-        Serial.print( controller.getIntegralCorrection().x, 2 ); Serial.print("\t");
-        Serial.print( controller.getDerivateCorrection().x, 2 ); Serial.print("\t|\t");
-        Serial.print( sonar_height, 2 ); Serial.print("\t");
-        Serial.print( max_time_loop ); Serial.print("\n");
-      }
-      millis_at_last_print = millis();
-    }
-  }
-
-  Serial.println("Stop of the test !");
-  Serial.println("Next test starts in 20 seconds !");
-
-  motors.setOff();
-
-  millis_at_last_test_end = millis();
-
-  if(sd_debug)
-  {
-
-    unsigned int file_count = 0;
-    while (SD.exists((String("test") + String(folder_count) + String("/") + String("log") + String(file_count)).c_str()))
-      file_count++;
-    File data_file = SD.open((String("test") + String(folder_count) + String("/") + String("log") + String(file_count) ).c_str(), FILE_WRITE);
-
-    if(data_file)
-    {
-      digitalWrite(5, HIGH);
-      Serial.println("open achieved");
-      String stream = "----TEST n°" + String(test_id) + "----\n";
-      for( unsigned int i = 0 ; i < sample_num ; i++ )
-      {
-        stream += String(i);
-        stream += String("\t");
-        stream += String(samples[i].x);
-        stream += String("\t");
-        stream += String(samples[i].command_x);
-        stream += String("\t");
-        stream += String(samples[i].proportional_x);
-        stream += String("\t");
-        stream += String(samples[i].integral_x);
-        stream += String("\t");
-        stream += String(samples[i].derivate_x);
         stream += String("\n");
-      }
-      data_file.print(stream);
-      delay(100);
-      data_file.close();
-      Serial.println(stream);
-    }
-  }
 
+        if(serial_debug) {
+            Serial.print(stream);
+        }
+        stream = "";
+    }
+    */
+    /*
+       if(sd_debug) {
+       unsigned int file_count = 0;
+       while (SD.exists((String("test") + String(file_count)).c_str()))
+       file_count++;
+       File data_file = SD.open((String("test") + String(file_count) ).c_str(), FILE_WRITE);
+
+       if(!data_file) {
+       Serial.println("erreur en ouvrant le fichier!");
+       } else {
+       digitalWrite(5, HIGH);
+       Serial.println("open achieved");
+
+       data_file.print(stream);
+       delay(100);
+       data_file.close();
+       Serial.println(stream);
+       }
+       }
+       */
+    while(true); // test effectué c'était énorme on s'arrête maintenant
 }
