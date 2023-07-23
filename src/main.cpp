@@ -24,26 +24,34 @@ typedef struct State {
     unsigned long t; // microseconds
 } State;
 
-#define K_P_zero 3.0f
-#define K_P 0.5f
-#define K_D 0.01f
+
+
+float X_K_P = 15.0f*0.2f;
+float X_K_D = 15.0f*0.2f*0.076f;
+#define Ku 0.0125f
+#define Tu 0.240f // 240ms
+#define K_P (0.6f*Ku)
+#define K_D (0.075f*Ku*Tu)
+
 void compute_commands(State *states, int idx){
     if(idx == 0) {
         states[idx].cmd = {0.0f, 0.0f, 0.0f};
         return;
     }
-    float dt = 1.0f/(states[idx].t-states[idx-1].t);
+    float dt = (states[idx].t-states[idx-1].t)*1e-6f;
     vec3f ncsigne;
-    ncsigne.x = K_P_zero*-states[idx].ori.x;
-    ncsigne.y = K_P_zero*-states[idx].ori.y;
+    ncsigne.x = X_K_P*-states[idx].ori.x - X_K_D*states[idx].rot_filtered.x;
+    ncsigne.y = X_K_P*-states[idx].ori.y - X_K_D*states[idx].rot_filtered.y;
 
     vec3f ocsigne;
-    ocsigne.x = K_P_zero*-states[idx-1].ori.x;
-    ocsigne.y = K_P_zero*-states[idx-1].ori.y;
+    ocsigne.x = X_K_P*-states[idx-1].ori.x - X_K_D*states[idx].rot_filtered.x;
+    ocsigne.y = X_K_P*-states[idx-1].ori.y - X_K_D*states[idx].rot_filtered.y;
+
+
     states[idx].p.x = K_P*(ncsigne.x-states[idx].rot_filtered.x);
-    states[idx].p.y =   K_P*(ncsigne.y-states[idx].rot_filtered.y);
+    states[idx].p.y = K_P*(ncsigne.y-states[idx].rot_filtered.y);
     states[idx].d.x = K_D*((ncsigne.x-states[idx].rot_filtered.x)-(ocsigne.x-states[idx-1].rot_filtered.x))/dt;
-    states[idx].d.y =+ K_D*((ncsigne.y-states[idx].rot_filtered.y)-(ocsigne.y-states[idx-1].rot_filtered.y))/dt;
+    states[idx].d.y = K_D*((ncsigne.y-states[idx].rot_filtered.y)-(ocsigne.y-states[idx-1].rot_filtered.y))/dt;
 
     states[idx].cmd.x =  states[idx].p.x + states[idx].d.x;
     states[idx].cmd.y =  states[idx].p.y + states[idx].d.y;
@@ -105,7 +113,7 @@ void loop()
     motors.setOn();
     mpu.resetOrientation();
     unsigned long millis_at_start = millis();
-    for(unsigned int zero = 0; zero < 3 ; zero++) {
+    for(unsigned int zero = 0; zero < 20 ; zero++) {
         if(zero > 0) {
             states[0] = states[NUM_STATES-1];
         }
@@ -117,8 +125,8 @@ void loop()
             states[idx].ori = mpu.getOrientation();
             states[idx].rot = mpu.getRotation();
 
-            float dt = 1.0f/(states[idx].t-states[idx-1].t);
-            const float beta = exp(-2.0f*3.14f*25*dt); // filtrage passe-bas 200hz
+            float dt = (states[idx].t-states[idx-1].t)*1e-6f;
+            const float beta = exp(-2.0f*3.14f*25.0f*dt); // filtrage passe-bas 200hz
             states[idx].rot_filtered.x = beta*states[idx-1].rot_filtered.x + (1.0f-beta)*states[idx].rot.x;
 
             states[idx].rot_filtered.y = beta*states[idx-1].rot_filtered.y + (1.0f-beta)*states[idx].rot.y;
@@ -134,14 +142,12 @@ void loop()
             Serial.print(states[idx].cmd.x, 4) + Serial.print("\t");
             Serial.print(states[idx].p.x, 4) + Serial.print("\t");
             Serial.print(states[idx].d.x, 4) + Serial.print("\t");
-            Serial.print(states[idx].cmd.y, 4) + Serial.print("\t");
-            Serial.print(states[idx].p.y, 4) + Serial.print("\t");
-            Serial.print(states[idx].d.y, 4) + Serial.print("\t");
+            Serial.print(motor_value.x, 4) + Serial.print("\t");
+            Serial.print(motor_value.z, 4) + Serial.print("\t");
             Serial.println("");
             //}
         }
     }
-    Serial.println(millis()-millis_at_start);
     motors.setOff();
 /*
     String stream = "t (micros)\tori_x\trot_x\tcmd_x\tm_0\tm_1\tm_2\tm_3\n";
