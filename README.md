@@ -1,13 +1,13 @@
 # quadcopter
-quadcopter management code
+quadcopter control code
 
-There are 3 majors functions actually : 
+There are three main functions : 
 
-- Compute IMU sensor data (gyroscope and accelerometer) and fusion them to a single absolute orientation (in degrees)<br />
- -> it is made inside the IMUsensor class (IMUsensor.cpp / IMUsensor.hpp)<br />
+- Compute IMU data (gyroscope and accelerometer) and fuse it to a single absolute orientation (in degrees)<br />
+ ->made inside the IMUsensor class (IMUsensor.cpp / IMUsensor.hpp)<br />
 
-- Compute command to stabilize the quadcopter, using the orientation from the IMU and the altitude from the Ultrasonic Module and a PID algorithm, <br />
- -> it is made inside the PID class (PID.cpp / PID.hpp) <br /> 
+- Compute commands to stabilize the quadcopter, using the orientation from the IMU and the altitude from the Ultrasonic Module and a PID algorithm, <br />
+ -> made inside the PID class (PID.cpp / PID.hpp) <br /> 
  
 - Compute motors controls using the PID commands. <br />
- -> it is made inside the MotorManager class (motormanager.cpp / motormanager.hpp) <br />
+ -> made inside the MotorManager class (motormanager.cpp / motormanager.hpp) <br />
